@@ -5,7 +5,7 @@ void Database::set(const std::string& key, const std::string& value){
     memory[key] = value;
 }
 
-std::optional<std::string> Database::get(const std::string& key){
+std::optional<std::string> Database::get(const std::string& key) const{
 
     auto it = memory.find(key);
 
@@ -17,10 +17,10 @@ std::optional<std::string> Database::get(const std::string& key){
 
 bool Database::remove(const std::string& key){
     
-    return memory.erase(key) > 0;
+    return memory.erase(key);
 }
 
-bool Database::exists(const std::string& key){
+bool Database::exists(const std::string& key) const{
     auto it = memory.find(key);
 
     if(it != memory.end()){

@@ -1,5 +1,7 @@
 # include <iostream>
+//# include <optional>
 # include "database.hpp"
+# include <string>
 
 
 int main(){
@@ -11,10 +13,17 @@ int main(){
 
     std::cout <<"Value stored successfully\n";
 
-    db.get("name");
-    std::cout <<db.exists("name")<<std::endl;
-    std::cout <<db.remove("name")<<std::endl;
-    std::cout <<db.exists("name")<<std::endl;
+    auto name = db.get("age");
+    if(!name.has_value()){
+        std::cout <<"Key not found"<< std::endl;
+    }
+    else{
+        std::cout <<"Name: "<<name.value()<< std::endl;
+    }
+
+    std::cout <<db.exists("name")<< std::endl;
+    std::cout <<db.remove("name")<< std::endl;
+    std::cout <<db.exists("name")<< std::endl;
 
     return 0;
 }
