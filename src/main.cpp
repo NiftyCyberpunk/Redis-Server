@@ -1,8 +1,20 @@
 # include <iostream>
-using namespace std;
+# include "database.hpp"
+
 
 int main(){
 
-    cout <<"C++ Redis Server"<<endl;
+    std::cout <<"C++ Redis Server\n";
+
+    Database db;
+    db.set("name", "Aryan Verma");
+
+    std::cout <<"Value stored successfully\n";
+
+    db.get("name");
+    std::cout <<db.exists("name")<<std::endl;
+    std::cout <<db.remove("name")<<std::endl;
+    std::cout <<db.exists("name")<<std::endl;
+
     return 0;
 }

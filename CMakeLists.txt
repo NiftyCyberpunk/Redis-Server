@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(cpp_redis
     src/main.cpp
+    src/database.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
