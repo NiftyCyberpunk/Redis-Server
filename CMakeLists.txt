@@ -9,6 +9,7 @@ add_executable(cpp_redis
     src/main.cpp
     src/database.cpp
     src/command_parser.cpp
+    src/command_handler.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
