@@ -1,29 +1,45 @@
 # include <iostream>
-//# include <optional>
-# include "database.hpp"
 # include <string>
-
+# include "database.hpp"
+# include "command_parser.hpp"
+//# include <optional>
 
 int main(){
 
     std::cout <<"C++ Redis Server\n";
-
     Database db;
-    db.set("name", "Aryan Verma");
+    std::string input;
 
-    std::cout <<"Value stored successfully\n";
+    while (true){
+        std::cout <<"> ";
+        
+        std::getline(std::cin, input);
+        /*
+            Why "std::getline" not "std::cin"???
+                Because "std::cin" stops reading when it hits space,
+                Ex => "Aryan Verma" it only reads "Aryan"
+                while "std::getline" reads until enter or newline char is entered... 
+        */
 
-    auto name = db.get("age");
-    if(!name.has_value()){
-        std::cout <<"Key not found"<< std::endl;
+        if(input.empty()){
+            continue;
+        }
+        if(input == "EXIT" || input == "exit"){
+            std::cout <<"Pleasure working with you...Bye"<<std::endl;
+            break;
+        }
+        std::cout <<"Input: "<<input<<std::endl;
+
+        Command cmd = CommandParser::parser(input);
+
+        std::cout <<"Command: "<<cmd.command<<std::endl;
+
+        std::cout <<"Args: ";
+        for(const auto& arg : cmd.args){
+            std::cout <<arg<<" ";
+        }
+        
+        std::cout <<std::endl;
     }
-    else{
-        std::cout <<"Name: "<<name.value()<< std::endl;
-    }
-
-    std::cout <<db.exists("name")<< std::endl;
-    std::cout <<db.remove("name")<< std::endl;
-    std::cout <<db.exists("name")<< std::endl;
-
     return 0;
 }
