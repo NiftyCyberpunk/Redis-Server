@@ -37,10 +37,6 @@ std::string CommandHandler::execute(const Command& cmd){
     }
 
     if(cmdName == "GET"){
-        if(cmd.args.empty()){
-            return "ERROR --> No arguments to GET...";
-        }
-
         if(cmd.args.size() != 1){
             return "ERROR --> GET requires one argument...";
         }
@@ -63,12 +59,7 @@ std::string CommandHandler::execute(const Command& cmd){
 
         key = cmd.args[0];
 
-        bool res = db.remove(key);
-
-        if(res){
-            return "1";
-        }
-        return "0";
+        return db.remove(key) ? "1" : "0";
     }
 
     if(cmdName == "EXISTS"){
@@ -78,14 +69,8 @@ std::string CommandHandler::execute(const Command& cmd){
 
         key = cmd.args[0];
 
-        bool res = db.exists(key);
-
-        if(res){
-            return "1";
-        }
-        return "0";
+        return db.exists(key) ? "1" : "0";
     }
-
 
     return "ERROR --> Unknown Command...";
 }
