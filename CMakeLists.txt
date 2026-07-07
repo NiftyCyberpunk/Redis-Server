@@ -10,8 +10,11 @@ add_executable(cpp_redis
     src/database.cpp
     src/command_parser.cpp
     src/command_handler.cpp
+    src/server.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
+
+target_link_libraries(cpp_redis PRIVATE ws2_32)

@@ -79,3 +79,44 @@ Redis Server/
 ├── CMakeLists.txt
 ├── .gitignore
 └── README.md
+```
+
+## Build and Run
+
+### Requirements
+
+- C++17 compatible compiler
+- CMake
+- Ninja
+
+### Configure
+
+```bash
+cmake -S . -B build -G Ninja
+```
+
+### Build
+
+```bash
+cmake --build build
+```
+
+### Run
+
+```bash
+./build/RedisServer.exe
+```
+
+## Roadmap
+
+- [x] In-memory key-value database
+- [x] Command-line interface
+- [x] Command parser
+- [x] Command handler
+- [x] Core commands
+- [ ] TCP server
+- [ ] Client-server communication
+- [ ] Multiple clients
+- [ ] Thread safety
+- [ ] Persistence
+
