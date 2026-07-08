@@ -1,13 +1,15 @@
 # ifndef SERVER_HPP
 # define SERVER_HPP
+#include "command_handler.hpp"
 #include <WinSock2.h>
 # include <winSock2.h>
 
 class Server{
 private:
-    SOCKET serverSocket;
+    SOCKET serverSocket;//SOCKET is windows defined type to handles sockets
+    CommandHandler& handler;
 public:
-    Server();
+    Server(CommandHandler& commandHandler);
     ~Server();
 
     bool start();

@@ -52,3 +52,54 @@ Multiple commands may also arrive in one recv() call:
     recv #1 → "SET name Aryan\nGET name\n"
 
 Therefore, the application needs its own message-framing mechanism.
+
+## Winsock Fundamentals
+
+### Why do we need `WSAStartup()`?
+
+`WSAStartup()` initializes the Windows Sockets API before the program uses Winsock functions.
+
+### What is `WSADATA`?
+
+`WSADATA` is a structure filled by `WSAStartup()` with information about the initialized Winsock implementation.
+
+### Why initialize a socket with `INVALID_SOCKET`?
+
+It gives the socket member a known invalid state before a real socket is created.
+
+### What is `SOCKET`?
+
+`SOCKET` is the Windows-defined handle type used to represent a socket.
+
+### What do the `socket()` arguments mean?
+
+- `AF_INET` → IPv4 address family
+- `SOCK_STREAM` → stream-oriented socket
+- `IPPROTO_TCP` → TCP protocol
+
+Together, they create an IPv4 TCP stream socket.
+
+### What is `ws2_32`?
+
+`ws2_32` is the Windows Winsock library linked to the executable.
+
+```cmake
+target_link_libraries(cpp_redis PRIVATE ws2_32)
+```
+
+## Winsock lifecycle
+WSAStartup()
+    ↓
+socket()
+    ↓
+bind()
+    ↓
+listen()
+    ↓
+accept()
+    ↓
+send() / recv()
+    ↓
+closesocket()
+    ↓
+WSACleanup()
