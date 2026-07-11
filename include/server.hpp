@@ -11,7 +11,8 @@ private:
 public:
     Server(CommandHandler& commandHandler);
     ~Server();
-
+    
+    void handleClient(SOCKET clientSocket);
     bool start();
 };
 

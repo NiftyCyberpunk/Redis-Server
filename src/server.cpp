@@ -3,20 +3,97 @@
 # include "command_handler.hpp"
 # include <WinSock2.h>
 # include <cstddef>
-# include <inaddr.h>
 # include <iostream>
-# include <minwindef.h>
-# include <oaidl.h>
 # include <string>
 # include <winSock2.h>
-# include <winscard.h>
 
 Server::Server(CommandHandler& commandHandler):serverSocket(INVALID_SOCKET),handler(commandHandler){
     //No valid socket handled yet
 }
 
 Server::~Server(){
+    if(serverSocket != INVALID_SOCKET){
+        closesocket(serverSocket);
+        WSACleanup();
+    }
+}
+
+void Server::handleClient(SOCKET clientSocket){
+    std::cout <<"Client connected\n";
+    std::string pendingData;
+    bool isConnected = true;
+    while(true){
+        char buffer[1024];
+
+        int bytesReceived = recv(
+            clientSocket,
+            buffer,
+            sizeof(buffer) - 1,
+            0
+        );
+
+        if(bytesReceived > 0){
+            pendingData.append(buffer, bytesReceived);
+            std::size_t pos;
+            
+            while((pos = pendingData.find('\n'))!= std::string::npos){
+                std::string command = pendingData.substr(0, pos);
+
+                std::cout <<"Received: "<<command<<'\n';
+
+                pendingData.erase(0, pos + 1);
+
+                Command cmd = CommandParser::parser(command);
+                
+
+                if(cmd.command == "EXIT" || cmd.command == "exit"){
+                    std::string endMsg = "GoodBye...";
+                    int byteSend = send(
+                        clientSocket,
+                        endMsg.data(),
+                        static_cast<int>(endMsg.size()),
+                        0
+                    );
+                    
+                    if(byteSend == SOCKET_ERROR){
+                        std::cerr <<"Send failed, Error: "<<WSAGetLastError()<<'\n';
+                    }
+                    isConnected = false;
+                    break;
+                }
     
+                std::string response = handler.execute(cmd);
+
+                response += '\n';
+                
+                int bytesSend = send(
+                    clientSocket,
+                    response.data(),
+                    static_cast<int>(response.size()),
+                    0
+                );
+                
+                if(bytesSend == SOCKET_ERROR){
+                    std::cerr <<"Send failed, Error: "<<WSAGetLastError()<<'\n';
+                    break;
+                }
+
+            }
+        }
+        else if(bytesReceived == 0){
+            std::cout <<"Client disconnected\n";
+            break;
+        }
+        else{
+            std::cerr <<"Receive failed, Error: "<<WSAGetLastError()<<'\n';
+            break;
+        }
+        if(!isConnected){
+            std::cout <<"Client disconnected\n";
+            break;
+        }
+    }
+    closesocket(clientSocket);
 }
 
 bool Server::start(){
@@ -25,7 +102,7 @@ bool Server::start(){
     int result = WSAStartup(MAKEWORD(2, 2), &wsadata);
 
     if(result != 0){
-        std::cerr << "WSAStartup failed\n";
+        std::cerr << "WSAStartup failed, Error: "<<WSAGetLastError()<<'\n';
         return false;
     }
 
@@ -37,7 +114,7 @@ bool Server::start(){
     */
 
     if(serverSocket == INVALID_SOCKET){
-        std::cerr <<"Socket creation failed\n";
+        std::cerr <<"Socket creation failed, Error: "<<WSAGetLastError()<<'\n';
         WSACleanup();//releases/undoes the process’s successful Winsock initialization usage when you’re finished with Winsock.
         return false;
     }
@@ -58,7 +135,7 @@ bool Server::start(){
     );
 
     if(bindResult == SOCKET_ERROR){
-        std::cerr <<"Bind failed\n";
+        std::cerr <<"Bind failed, Error: "<<WSAGetLastError()<<'\n';
         closesocket(serverSocket);
         WSACleanup();
         return false;
@@ -78,75 +155,22 @@ bool Server::start(){
         return false;
     }
 
-    std::cout <<"Server listning on port 6379\n";
+    std::cout <<"Server listening on port 6379\n";
     
 
     std::cout <<"Waiting for client\n";
 
-    SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
+    while (true){
+        SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
 
-    if(clientSocket == INVALID_SOCKET){
-        std::cerr <<"Accept failed\n";
-        closesocket(serverSocket);
-        WSACleanup();
-        return false;
+        if(clientSocket == INVALID_SOCKET){
+        std::cerr <<"Accept failed, Error: "<<WSAGetLastError()<<'\n';
+        continue;;
     }
 
-    std::cout <<"Client connected\n";
-    std::string pendingData;
-    
-    while(true){
-        char buffer[1024];
-
-        int bytesReceived = recv(
-            clientSocket,
-            buffer,
-            sizeof(buffer) - 1,
-            0
-        );
-
-        if(bytesReceived > 0){
-            pendingData.append(buffer, bytesReceived);
-            std::size_t pos;
-            
-            while((pos = pendingData.find('\n'))!= std::string::npos){
-                std::string command = pendingData.substr(0, pos);
-
-                std::cout <<"Recieved: "<<command<<'\n';
-
-                pendingData.erase(0, pos + 1);
-
-                Command cmd = CommandParser::parser(command);
-    
-                std::string response = handler.execute(cmd);
-
-                response += '\n';
-                
-                int bytesSend = send(
-                    clientSocket,
-                    response.data(),
-                    static_cast<int>(response.size()),
-                    0
-                );
-                
-                if(bytesSend == SOCKET_ERROR){
-                    std::cerr <<"Send failed\n";
-                    break;
-                }
-
-            }
-        }
-        else if(bytesReceived == 0){
-            std::cout <<"Client disconnected\n";
-            break;
-        }
-        else{
-            std::cerr <<"Recieve failed\n";
-            break;
-        }
+    handleClient(clientSocket);
+        
     }
-
-    closesocket(clientSocket);
     
     return true;
     
