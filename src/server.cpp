@@ -6,6 +6,7 @@
 # include <iostream>
 # include <string>
 # include <winSock2.h>
+# include <thread>
 
 Server::Server(CommandHandler& commandHandler):serverSocket(INVALID_SOCKET),handler(commandHandler){
     //No valid socket handled yet
@@ -168,7 +169,13 @@ bool Server::start(){
         continue;;
     }
 
-    handleClient(clientSocket);
+    std::thread clientThread(
+        &Server::handleClient,
+        this,
+        clientSocket
+    );
+
+    clientThread.detach();
         
     }
     
