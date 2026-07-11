@@ -14,7 +14,7 @@ std::string CommandHandler::execute(const Command& cmd){
 
     if(cmdName == "SET"){
         if(cmd.args.empty()){
-            return "ERROR --> No arguments to SET...";
+            return "-ERROR No arguments to SET...";
         }
 
         key = cmd.args[0];
@@ -29,16 +29,16 @@ std::string CommandHandler::execute(const Command& cmd){
         }
 
         if(data.empty()){
-            return "ERROR --> No data to set...";
+            return "-ERROR No data to set...";
         }
 
         db.set(key, data);
-        return "OK";
+        return "+OK";
     }
 
     if(cmdName == "GET"){
         if(cmd.args.size() != 1){
-            return "ERROR --> GET requires one argument...";
+            return "-ERROR GET requires one argument...";
         }
 
         key = cmd.args[0];
@@ -46,31 +46,31 @@ std::string CommandHandler::execute(const Command& cmd){
         auto value = db.get(key);
 
         if(!value){
-            return "ERROR --> Key not found...";
+            return "-ERROR Key not found...";
         }
 
-        return *value;
+        return "$" +  *value;
     }
 
     if(cmdName == "DEL"){
         if(cmd.args.size() != 1){
-            return "ERROR --> DEL requires one argument...";
+            return "-ERROR DEL requires one argument...";
         }
 
         key = cmd.args[0];
 
-        return db.remove(key) ? "1" : "0";
+        return db.remove(key) ? ":1" : ":0";
     }
 
     if(cmdName == "EXISTS"){
         if(cmd.args.size() != 1){
-            return "ERROR --> EXISTS requires one argument...";
+            return "-ERROR EXISTS requires one argument...";
         }
 
         key = cmd.args[0];
 
-        return db.exists(key) ? "1" : "0";
+        return db.exists(key) ? ":1" : ":0";
     }
 
-    return "ERROR --> Unknown Command...";
+    return "-ERROR Unknown Command...";
 }
