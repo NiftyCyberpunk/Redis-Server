@@ -10,6 +10,9 @@ class Database{
 private:
     std::unordered_map<std::string, std::string> memory;
     mutable std::mutex memoryMutex; //lock the database so only one thread can access at the moment
+    //mutable is used bcz when the mutex is lcoked it changes it state which will not be possible 
+    //if the function is const so we tell c++ that this is mutable
+    
 public:
     void set(const std::string& key, const std::string& value);
 

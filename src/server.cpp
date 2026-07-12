@@ -1,6 +1,8 @@
 # include "server.hpp"
 # include "command_parser.hpp"
 # include "command_handler.hpp"
+# include "command_result.hpp"
+# include "protocol_formatter.hpp"
 # include <WinSock2.h>
 # include <cstddef>
 # include <iostream>
@@ -63,7 +65,9 @@ void Server::handleClient(SOCKET clientSocket){
                     break;
                 }
     
-                std::string response = handler.execute(cmd);
+                CommandResult result = handler.execute(cmd);
+
+                std::string response = ProtocolFormatter::formatter(result);
 
                 response += '\n';
                 

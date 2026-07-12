@@ -11,6 +11,7 @@ add_executable(cpp_redis
     src/command_parser.cpp
     src/command_handler.cpp
     src/server.cpp
+    src/protocol_formatter.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE

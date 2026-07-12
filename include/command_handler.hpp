@@ -1,7 +1,7 @@
 # ifndef COMMAND_HANDLER_HPP
 # define COMMAND_HANDLER_HPP
-# include <string>
 # include "command_parser.hpp"
+#include "command_result.hpp"
 # include "database.hpp"
 
 class CommandHandler{
@@ -10,7 +10,7 @@ private:
 public:
     CommandHandler(Database& database);
 
-    std::string execute(const Command& cmd);
+    CommandResult execute(const Command& cmd);
 };
 
 #endif
