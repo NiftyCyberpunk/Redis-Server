@@ -3,9 +3,9 @@
 # include "command_handler.hpp"
 # include "command_result.hpp"
 # include "protocol_formatter.hpp"
+# include "logger.hpp"
 # include <WinSock2.h>
 # include <cstddef>
-# include <iostream>
 # include <string>
 # include <winSock2.h>
 # include <thread>
@@ -22,7 +22,7 @@ Server::~Server(){
 }
 
 void Server::handleClient(SOCKET clientSocket){
-    std::cout <<"Client connected\n";
+    Logger::info("Client connected");
     std::string pendingData;
     bool isConnected = true;
     while(true){
@@ -42,14 +42,14 @@ void Server::handleClient(SOCKET clientSocket){
             while((pos = pendingData.find('\n'))!= std::string::npos){
                 std::string command = pendingData.substr(0, pos);
 
-                std::cout <<"Received: "<<command<<'\n';
+                Logger::info(command);
 
                 pendingData.erase(0, pos + 1);
 
                 Command cmd = CommandParser::parser(command);
                 
 
-                if(cmd.command == "EXIT" || cmd.command == "exit"){
+                if(cmd.command == "QUIT"){
                     std::string endMsg = "GoodBye...";
                     int byteSend = send(
                         clientSocket,
@@ -59,7 +59,7 @@ void Server::handleClient(SOCKET clientSocket){
                     );
                     
                     if(byteSend == SOCKET_ERROR){
-                        std::cerr <<"Send failed, Error: "<<WSAGetLastError()<<'\n';
+                        Logger::error("Send failed" + std::to_string(WSAGetLastError()));
                     }
                     isConnected = false;
                     break;
@@ -79,22 +79,22 @@ void Server::handleClient(SOCKET clientSocket){
                 );
                 
                 if(bytesSend == SOCKET_ERROR){
-                    std::cerr <<"Send failed, Error: "<<WSAGetLastError()<<'\n';
+                    Logger::error("Send failed" + std::to_string(WSAGetLastError()));
                     break;
                 }
 
             }
         }
         else if(bytesReceived == 0){
-            std::cout <<"Client disconnected\n";
+            Logger::info("Client disconnected");
             break;
         }
         else{
-            std::cerr <<"Receive failed, Error: "<<WSAGetLastError()<<'\n';
+            Logger::error("Receive failed" + std::to_string(WSAGetLastError()));
             break;
         }
         if(!isConnected){
-            std::cout <<"Client disconnected\n";
+            Logger::info("Client disconnected");
             break;
         }
     }
@@ -107,7 +107,7 @@ bool Server::start(){
     int result = WSAStartup(MAKEWORD(2, 2), &wsadata);
 
     if(result != 0){
-        std::cerr << "WSAStartup failed, Error: "<<WSAGetLastError()<<'\n';
+        Logger::error("WSAStartup failed" + std::to_string(WSAGetLastError()));
         return false;
     }
 
@@ -119,15 +119,15 @@ bool Server::start(){
     */
 
     if(serverSocket == INVALID_SOCKET){
-        std::cerr <<"Socket creation failed, Error: "<<WSAGetLastError()<<'\n';
+        Logger::error("Socket creation failed" + std::to_string(WSAGetLastError()));
         WSACleanup();//releases/undoes the process’s successful Winsock initialization usage when you’re finished with Winsock.
         return false;
     }
 
-    std::cout <<"Socket created successfully\n";
-
+    Logger::info("Socket created successfully");
+    
     sockaddr_in serverAddress{};
-
+    
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(6379);//htons --> host to network short
     //Network protocols use network byte order, so htons() converts the 16-bit port number into the required byte order.
@@ -140,13 +140,13 @@ bool Server::start(){
     );
 
     if(bindResult == SOCKET_ERROR){
-        std::cerr <<"Bind failed, Error: "<<WSAGetLastError()<<'\n';
+        Logger::error("Bind failed" + std::to_string(WSAGetLastError()));
         closesocket(serverSocket);
         WSACleanup();
         return false;
     }
-
-    std::cout <<"Socket bound successfully\n";
+    
+    Logger::info("Socket bound successfully");
     
     int listenResult = listen(
         serverSocket, 
@@ -154,22 +154,22 @@ bool Server::start(){
     );
 
     if(listenResult == SOCKET_ERROR){
-        std::cerr <<"Listen failed\n";
+        Logger::error("Listen failed" + std::to_string(WSAGetLastError()));        
         closesocket(serverSocket);
         WSACleanup();
         return false;
     }
 
-    std::cout <<"Server listening on port 6379\n";
+    Logger::info("Server listening on port 6379");    
     
-
-    std::cout <<"Waiting for client\n";
+    
+    Logger::info("Waiting for client");    
 
     while (true){
         SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
 
         if(clientSocket == INVALID_SOCKET){
-        std::cerr <<"Accept failed, Error: "<<WSAGetLastError()<<'\n';
+        Logger::error("Accept failed" + std::to_string(WSAGetLastError()));
         continue;;
     }
 

@@ -10,10 +10,10 @@
 # include <string>
 
 enum class ResultType {
-    OK,
+    SimpleString,
     Integer,
     Error,
-    String
+    BulkString
 };
 
 struct CommandResult {

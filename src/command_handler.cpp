@@ -41,8 +41,8 @@ CommandResult CommandHandler::execute(const Command& cmd){
 
         db.set(key, data);
         return {
-            ResultType::OK,
-            ""
+            ResultType::SimpleString,
+            "OK"
         };
     }
 
@@ -66,7 +66,7 @@ CommandResult CommandHandler::execute(const Command& cmd){
         }
 
         return {
-            ResultType::String,
+            ResultType::BulkString,
             *value
         };
     }
@@ -100,6 +100,19 @@ CommandResult CommandHandler::execute(const Command& cmd){
         return {
             ResultType::Integer,
             db.exists(key) ? "1" : "0"
+        };
+    }
+
+    if(cmdName == "PING"){
+        if(!cmd.args.empty()){
+            return {
+                ResultType::Error,
+                "PING requires no arguments"
+            };
+        }
+        return {
+            ResultType::SimpleString,
+            "PONG"
         };
     }
 

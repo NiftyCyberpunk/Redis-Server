@@ -4,13 +4,13 @@
 std::string ProtocolFormatter::formatter(const CommandResult &result){
     switch(result.type){
 
-        case ResultType::OK:
-            return "+OK";
+        case ResultType::SimpleString:
+            return "+" + result.value;
         
         case ResultType::Integer:
             return ":" + result.value;
         
-        case ResultType::String:
+        case ResultType::BulkString:
             return "$" + result.value;
         
         case ResultType::Error:

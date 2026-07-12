@@ -12,6 +12,7 @@ add_executable(cpp_redis
     src/command_handler.cpp
     src/server.cpp
     src/protocol_formatter.cpp
+    src/logger.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
@@ -19,3 +20,21 @@ target_include_directories(cpp_redis PRIVATE
 )
 
 target_link_libraries(cpp_redis PRIVATE ws2_32)
+
+add_executable(redis_tests
+    tests/main.cpp
+    tests/database_tests.cpp
+    tests/parser_tests.cpp
+    tests/handler_tests.cpp
+    tests/formatter_tests.cpp
+    tests/tests_utils.cpp
+
+    src/database.cpp
+    src/command_parser.cpp
+    src/command_handler.cpp
+    src/protocol_formatter.cpp
+)
+
+target_include_directories(redis_tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+)
