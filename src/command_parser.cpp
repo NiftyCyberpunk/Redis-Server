@@ -1,7 +1,7 @@
 # include "command_parser.hpp"
 # include <sstream>
 
-Command CommandParser::parser(const std::string &input){
+Command CommandParser::parse(const std::string &input){
 
     Command cmd;
 

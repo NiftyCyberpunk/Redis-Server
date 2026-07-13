@@ -7,14 +7,14 @@ void testSetParsing(){
     std::string input = "SET name Aryan";
     std::vector<std::string> args = {"name", "Aryan"}; 
 
-    Command cmd = CommandParser::parser(input);
+    Command cmd = CommandParser::parse(input);
 
     Utils::msgPrint((cmd.command == "SET" && cmd.args == args), "SetParsing");
 }
 void testGetParsing(){
     std::string input = "GET name";
 
-    Command cmd = CommandParser::parser(input);
+    Command cmd = CommandParser::parse(input);
 
 
     bool condition = (cmd.command == "GET") && (cmd.args.size() == 1);
@@ -24,7 +24,7 @@ void testGetParsing(){
 void testInvalidCommand(){
     std::string input = "SET name";
 
-    Command cmd = CommandParser::parser(input);
+    Command cmd = CommandParser::parse(input);
 
     Utils::msgPrint((cmd.command == "SET" && !cmd.args.empty()), "InvalidCommand");
 }

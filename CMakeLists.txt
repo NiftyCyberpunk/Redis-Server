@@ -13,6 +13,7 @@ add_executable(cpp_redis
     src/server.cpp
     src/protocol_formatter.cpp
     src/logger.cpp
+    src/resp_parser.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE

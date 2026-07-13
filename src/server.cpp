@@ -1,11 +1,10 @@
 # include "server.hpp"
-# include "command_parser.hpp"
+# include "resp_parser.hpp"
 # include "command_handler.hpp"
 # include "command_result.hpp"
 # include "protocol_formatter.hpp"
 # include "logger.hpp"
 # include <WinSock2.h>
-# include <cstddef>
 # include <string>
 # include <winSock2.h>
 # include <thread>
@@ -37,20 +36,12 @@ void Server::handleClient(SOCKET clientSocket){
 
         if(bytesReceived > 0){
             pendingData.append(buffer, bytesReceived);
-            std::size_t pos;
             
-            while((pos = pendingData.find('\n'))!= std::string::npos){
-                std::string command = pendingData.substr(0, pos);
+            Command cmd = RespParser::parse(pendingData);
 
-                Logger::info(command);
-
-                pendingData.erase(0, pos + 1);
-
-                Command cmd = CommandParser::parser(command);
-                
-
+            if(cmd.valid){
                 if(cmd.command == "QUIT"){
-                    std::string endMsg = "GoodBye...";
+                    std::string endMsg = "+OK\r\n";
                     int byteSend = send(
                         clientSocket,
                         endMsg.data(),
@@ -64,12 +55,10 @@ void Server::handleClient(SOCKET clientSocket){
                     isConnected = false;
                     break;
                 }
-    
+
                 CommandResult result = handler.execute(cmd);
 
                 std::string response = ProtocolFormatter::formatter(result);
-
-                response += '\n';
                 
                 int bytesSend = send(
                     clientSocket,
@@ -77,12 +66,13 @@ void Server::handleClient(SOCKET clientSocket){
                     static_cast<int>(response.size()),
                     0
                 );
+
+                pendingData.clear();
                 
                 if(bytesSend == SOCKET_ERROR){
                     Logger::error("Send failed" + std::to_string(WSAGetLastError()));
                     break;
                 }
-
             }
         }
         else if(bytesReceived == 0){
