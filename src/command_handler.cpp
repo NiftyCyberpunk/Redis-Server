@@ -1,10 +1,11 @@
 # include "command_handler.hpp"
 # include "command_parser.hpp"
-#include "command_result.hpp"
+# include "command_result.hpp"
 # include "database.hpp"
-#include <cstddef>
-#include <string>
-#include <vector>
+# include <cstddef>
+# include <exception>
+# include <string>
+# include <vector>
 
 CommandHandler::CommandHandler(Database& database) : db(database){
 
@@ -48,6 +49,26 @@ CommandResult CommandHandler::execute(const Command& cmd){
 
     if(cmd.command == "DBSIZE"){
         return handleDBsize(cmd);
+    }
+
+    if(cmd.command == "TYPE"){
+        return handleType(cmd);
+    }
+
+    if(cmd.command == "MGET"){
+        return handleMget(cmd);
+    }
+
+    if(cmd.command == "MSET"){
+        return handleMset(cmd);
+    }
+
+    if(cmd.command == "INCR"){
+        return handleIncr(cmd);
+    }
+
+    if(cmd.command == "DECR"){
+        return handleDecr(cmd);
     }
     
     return {
@@ -174,7 +195,7 @@ CommandResult CommandHandler::handleEcho(const Command& cmd){
     if(cmd.args.empty()){
         return {
             ResultType::Error,
-            "No argruments present"
+            "ECHO requires at least one argument"
         };
     }
 
@@ -244,4 +265,175 @@ CommandResult CommandHandler::handleDBsize(const Command& cmd){
         ResultType::Integer,
         std::to_string(db.size())
     };
+}
+
+CommandResult CommandHandler::handleType(const Command& cmd){
+
+    if(cmd.args.size() != 1){
+        return {
+            ResultType::Error,
+            "TYPE requires one argument"
+        };
+    }
+    return {
+        ResultType::SimpleString,
+        db.exists(cmd.args[0]) ? "string" : "none"
+    };
+}
+
+CommandResult CommandHandler::handleRename(const Command& cmd){
+
+    if(cmd.args.size() != 2){
+        return {
+            ResultType::Error,
+            "RENAME requires two arguments"
+        };
+    }
+
+    if(!db.exists(cmd.args[0])){
+        return {
+            ResultType::Error,
+            "Old key not found"
+        };
+    }
+
+    return {
+        ResultType::SimpleString,
+        db.renameKey(cmd.args[0], cmd.args[1]) ? "OK" : "Rename failed"
+    };
+}
+
+CommandResult CommandHandler::handleMget(const Command& cmd){
+    if(cmd.args.empty()){
+        return {
+            ResultType::Error,
+            "MGET requires at least one argument"        
+        };
+    }
+
+    std::vector<std::string> mget;
+
+    for(const auto& key : cmd.args){
+        auto value = db.get(key);
+
+        if(!value){
+            mget.push_back("");
+            continue;
+        }
+        mget.push_back(*value);
+    }
+    return {
+        ResultType::Array,
+        "",
+        mget        
+    };
+}
+
+CommandResult CommandHandler::handleMset(const Command& cmd){
+    if(cmd.args.empty()){
+        return {
+            ResultType::Error,
+            "No key-value pairs to set"
+        };
+    }
+    if(cmd.args.size() % 2 != 0){
+        return {
+            ResultType::Error,
+            "Mset requires a key-value pairs"
+        };
+    }
+
+    for(size_t i = 0; i < cmd.args.size() - 1; i += 2){
+        std::string key = cmd.args[i];
+        std::string value = cmd.args[i + 1];
+
+        db.set(key, value);
+    }
+    return {
+        ResultType::SimpleString,
+        "OK"
+    };
+}
+
+CommandResult CommandHandler::handleIncr(const Command& cmd){
+    if(cmd.args.size() != 1){
+        return {
+            ResultType::Error,
+            "INCR require one argument"
+        };
+    }
+
+    auto value = db.get(cmd.args[0]);
+    
+    if(!value){
+        return {
+            ResultType::Error,
+            "Key not found"
+        };
+    }
+
+    long long num;
+    try{
+        num = std::stoll(*value);
+        if(std::to_string(num) != *value){
+            return {
+                ResultType::Error,
+                "Value is not pure integer"
+            };
+        }
+
+        db.set(cmd.args[0], std::to_string(num + 1));
+
+        return {
+            ResultType::Integer,
+            std::to_string(num + 1)
+        };
+    }
+    catch(std::exception&){
+        return {
+            ResultType::Error,
+            "No integer value"
+        };
+    }
+}
+
+CommandResult CommandHandler::handleDecr(const Command& cmd){
+    if(cmd.args.size() != 1){
+        return {
+            ResultType::Error,
+            "DECR require one argument"
+        };
+    }
+
+    auto value = db.get(cmd.args[0]);
+
+    if(!value){
+        return {
+            ResultType::Error,
+            "Key not found"
+        };
+    }
+    long long num;
+    try{
+        num = std::stoll(*value);
+        if(std::to_string(num) != *value){
+            return {
+                ResultType::Error,
+                "Value is not pure integer"
+            };
+        }
+
+        db.set(cmd.args[0], std::to_string(num - 1));
+
+        return {
+            ResultType::Integer,
+            std::to_string(num - 1)
+        };
+    }
+    catch(std::exception&){
+        return {
+            ResultType::Error,
+            "No integer value"
+        };
+    }
 }

@@ -17,6 +17,12 @@ private:
     CommandResult handleKeys(const Command& cmd);
     CommandResult handleFlushDB(const Command& cmd);
     CommandResult handleDBsize(const Command& cmd);
+    CommandResult handleType(const Command& cmd);
+    CommandResult handleRename(const Command& cmd);
+    CommandResult handleMget(const Command& cmd);
+    CommandResult handleMset(const Command& cmd);
+    CommandResult handleIncr(const Command& cmd);
+    CommandResult handleDecr(const Command& cmd);
 public:
     CommandHandler(Database& database);
 

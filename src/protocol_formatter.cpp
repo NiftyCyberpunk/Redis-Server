@@ -7,14 +7,14 @@ std::string ProtocolFormatter::formatter(const CommandResult &result){
     switch(result.type){
 
         case ResultType::SimpleString:{
-            return "+" + result.value;
+            return "+" + result.value + "\r\n";
         }
         case ResultType::Integer:{
-            return ":" + result.value;
+            return ":" + result.value + "\r\n";
         }
         case ResultType::BulkString: {
             std::string length = std::to_string(result.value.length());
-            return "$" + length + "\r\n" + result.value + '\n';
+            return "$" + length + "\r\n" + result.value + "\r\n";
         }
 
         case ResultType::Array: {
@@ -27,13 +27,13 @@ std::string ProtocolFormatter::formatter(const CommandResult &result){
 
                 std::string keyLen = std::to_string(result.list[i].length());
 
-                keys += "$" + keyLen + "\r\n" + key + "\n"; 
+                keys += "$" + keyLen + "\r\n" + key + "\r\n"; 
             }
             return keys;
         }
 
         case ResultType::Error:{
-            return "-ERROR " + result.value;
+            return "-ERROR " + result.value + "\r\n";
         }
     }
     return "-ERROR Unknown result type";

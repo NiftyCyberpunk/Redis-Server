@@ -77,3 +77,9 @@ std::size_t Database::size() const{
     
     return count;
 }
+
+bool Database::renameKey(const std::string& oldKey, const std::string& newKey){
+    memory[newKey] = memory[oldKey];
+
+    return memory.erase(oldKey);
+}
