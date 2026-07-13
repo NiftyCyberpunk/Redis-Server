@@ -1,10 +1,12 @@
 # ifndef DATABASE_HPP
 # define DATABASE_HPP
 
+#include <cstddef>
 # include <optional>
 # include <unordered_map>
 # include <string>
 # include <mutex>
+#include <vector>
 
 class Database{
 private:
@@ -22,6 +24,12 @@ public:
     
     bool exists(const std::string& key) const;
     //writing const after fucntion means this function promises not to modify
+
+    std::vector<std::string> getKeys() const;
+
+    void clear();
+
+    std::size_t size() const;
 };
 
 #endif 

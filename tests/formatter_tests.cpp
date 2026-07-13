@@ -22,7 +22,7 @@ void testBulkString(){
 
     std::string response = ProtocolFormatter::formatter(result);
 
-    Utils::msgPrint((response == "$Nifty"), "Bulktring");
+    Utils::msgPrint((response == "$5\r\nNifty\n"), "Bulkstring");
 }
 void testInteger(){
     CommandResult result {

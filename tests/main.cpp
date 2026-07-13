@@ -4,6 +4,7 @@ void testSetAndGet();
 void testMissingKey();
 void testRemove();
 void testExists();
+void testFlushdb();
 
 void testSetParsing();
 void testGetParsing();
@@ -27,6 +28,7 @@ int main()
     testMissingKey();
     testRemove();
     testExists();
+    testFlushdb();
 
     std::cout << "\n========== PARSER TESTS ==========\n";
 

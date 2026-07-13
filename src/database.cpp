@@ -1,6 +1,9 @@
 # include "database.hpp"
+#include <cstddef>
 # include <mutex>
 # include <optional>
+#include <string>
+#include <vector>
 void Database::set(const std::string& key, const std::string& value){
 
     std::lock_guard<std::mutex> lock(memoryMutex);
@@ -45,4 +48,32 @@ bool Database::exists(const std::string& key) const{
         return true;
     }
     return false;
+}
+
+std::vector<std::string> Database::getKeys() const{
+
+    std::lock_guard<std::mutex> lock(memoryMutex);
+
+    std::vector<std::string> keys;
+
+    for(const auto& [key, value]:memory){
+        keys.push_back(key);
+    }
+    return keys;
+}
+
+void Database::clear(){
+
+    std::lock_guard<std::mutex> lock(memoryMutex);
+
+    memory.clear();
+}
+
+std::size_t Database::size() const{
+
+    std::lock_guard<std::mutex> lock(memoryMutex);
+    
+    size_t count = memory.size();
+    
+    return count;
 }

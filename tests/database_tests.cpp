@@ -33,3 +33,15 @@ void testExists(){
     Utils::msgPrint((db.exists("name")), "Exists");
 
 }
+
+void testFlushdb(){
+    Database db;
+
+    db.set("name", "Aryan");
+    db.set("age", "18");
+
+    db.clear();
+
+    Utils::msgPrint(!db.exists("name"), "Flushdb");
+    Utils::msgPrint(!db.exists("age"), "Flushdb");
+}

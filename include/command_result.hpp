@@ -6,17 +6,19 @@
 */
 //OR
 # pragma once
-
 # include <string>
+#include <vector>
 
 enum class ResultType {
     SimpleString,
     Integer,
     Error,
-    BulkString
+    BulkString,
+    Array
 };
 
 struct CommandResult {
     ResultType type;
     std::string value;
+    std::vector<std::string>list;
 };
