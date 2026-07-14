@@ -1,12 +1,13 @@
 # include "database.hpp"
-#include <cstddef>
+# include <chrono>
+# include <cstddef>
 # include <mutex>
 # include <optional>
-#include <string>
-#include <vector>
+# include <string>
+# include <vector>
 void Database::set(const std::string& key, const std::string& value){
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
     /*
         lock_gaurd
         creates a lock gaurd object named lock 
@@ -21,7 +22,7 @@ void Database::set(const std::string& key, const std::string& value){
 
 std::optional<std::string> Database::get(const std::string& key) const{
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
 
     auto it = memory.find(key);
 
@@ -33,14 +34,14 @@ std::optional<std::string> Database::get(const std::string& key) const{
 
 bool Database::remove(const std::string& key){
     
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
 
     return memory.erase(key);
 }
 
 bool Database::exists(const std::string& key) const{
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
 
     auto it = memory.find(key);
 
@@ -52,7 +53,7 @@ bool Database::exists(const std::string& key) const{
 
 std::vector<std::string> Database::getKeys() const{
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
 
     std::vector<std::string> keys;
 
@@ -64,14 +65,14 @@ std::vector<std::string> Database::getKeys() const{
 
 void Database::clear(){
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
 
     memory.clear();
 }
 
 std::size_t Database::size() const{
 
-    std::lock_guard<std::mutex> lock(memoryMutex);
+    std::lock_guard<std::mutex> lock(dbMutex);
     
     size_t count = memory.size();
     
@@ -84,9 +85,85 @@ bool Database::renameKey(const std::string& oldKey, const std::string& newKey){
     return memory.erase(oldKey);
 }
 
-    const std::unordered_map<std::string, std::string>& Database::getAll() const{
+const std::unordered_map<std::string, std::string>& Database::getAll() const{
 
-        std::lock_guard<std::mutex> lock(memoryMutex);
-        
-        return memory;
+    std::lock_guard<std::mutex> lock(dbMutex);
+    
+    return memory;
+}
+
+bool Database::expire(const std::string& key, int seconds){
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    if(memory.find(key) == memory.end()){
+        return false;
     }
+
+    expirations[key] = std::chrono::steady_clock::now() + std::chrono::seconds(seconds);
+
+    auto it = expirations.find(key);
+
+    return it != expirations.end();
+}
+
+int Database::ttl(const std::string& key){
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    auto it = memory.find(key);
+    auto itr = expirations.find(key);
+
+    if(it == memory.end()){
+        return -2;//Key does not exist
+    }
+    else if(itr == expirations.end()){
+        return -1;//Key present but has no expiration
+    }
+    
+    auto now = std::chrono::steady_clock::now();
+    auto expiry = itr->second;
+
+    auto remaining = expiry - now;
+
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(remaining);
+
+    int ttl = static_cast<int>(seconds.count());
+
+    return ttl;
+}
+
+bool Database::persist(const std::string& key){
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    auto it = memory.find(key);
+    auto itr = expirations.find(key);
+
+    if(it == memory.end())return false;
+
+    if(itr == expirations.end())return true;
+
+    return expirations.erase(key) > 0;
+}
+
+void Database::removeExpiredKey(){
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    const auto& now = std::chrono::steady_clock::now();
+    auto it = memory.begin();
+
+    while(it != memory.end()){
+
+        auto itr = expirations.find(it->first);
+        if(itr != expirations.end() && itr->second <= now){
+
+            expirations.erase(itr);
+            it = memory.erase(it);
+        }
+        else{
+            ++it;
+        }
+    }
+}

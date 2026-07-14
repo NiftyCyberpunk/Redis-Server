@@ -1,7 +1,8 @@
 # ifndef SERVER_HPP
 # define SERVER_HPP
-#include "command_handler.hpp"
-#include <WinSock2.h>
+# include "command_handler.hpp"
+# include <WinSock2.h>
+# include <thread>
 # include <winSock2.h>
 
 class Server{
@@ -14,6 +15,9 @@ public:
     
     void handleClient(SOCKET clientSocket);
     bool start();
+
+    std::thread cleanUpThread;
+    void cleanUpExpiredKeys();
 };
 
 

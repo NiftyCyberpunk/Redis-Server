@@ -5,6 +5,7 @@
 # include "protocol_formatter.hpp"
 # include "logger.hpp"
 # include <WinSock2.h>
+#include <chrono>
 # include <string>
 # include <winSock2.h>
 # include <thread>
@@ -17,6 +18,14 @@ Server::~Server(){
     if(serverSocket != INVALID_SOCKET){
         closesocket(serverSocket);
         WSACleanup();
+    }
+}
+
+void Server::cleanUpExpiredKeys(){
+    while(true){
+        handler.cleanUpExpiredKey();
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
@@ -154,6 +163,9 @@ bool Server::start(){
     
     
     Logger::info("Waiting for client");    
+
+    cleanUpThread = std::thread(&Server::cleanUpExpiredKeys,this);
+    cleanUpThread.detach();
 
     while (true){
         SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);

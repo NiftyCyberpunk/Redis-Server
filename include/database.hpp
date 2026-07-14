@@ -1,6 +1,7 @@
 # ifndef DATABASE_HPP
 # define DATABASE_HPP
 
+#include <chrono>
 #include <cstddef>
 # include <optional>
 # include <unordered_map>
@@ -11,7 +12,9 @@
 class Database{
 private:
     std::unordered_map<std::string, std::string> memory;
-    mutable std::mutex memoryMutex; //lock the database so only one thread can access at the moment
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point>expirations;
+
+    mutable std::mutex dbMutex; //lock the database so only one thread can access at the moment
     //mutable is used bcz when the mutex is lcoked it changes it state which will not be possible 
     //if the function is const so we tell c++ that this is mutable
     
@@ -34,6 +37,14 @@ public:
     bool renameKey(const std::string& oldKey, const std::string& newKey);
 
     const std::unordered_map<std::string, std::string>& getAll() const;
+
+    bool expire(const std::string& key, int seconds);
+
+    int ttl(const std::string& key);
+
+    bool persist(const std::string& key);
+
+    void removeExpiredKey();
 };
 
 #endif 

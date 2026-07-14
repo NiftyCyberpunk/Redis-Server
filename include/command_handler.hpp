@@ -1,6 +1,6 @@
 # ifndef COMMAND_HANDLER_HPP
 # define COMMAND_HANDLER_HPP
-# include "command_parser.hpp"
+# include "command.hpp"
 #include "command_result.hpp"
 # include "database.hpp"
 
@@ -23,10 +23,15 @@ private:
     CommandResult handleMset(const Command& cmd);
     CommandResult handleIncr(const Command& cmd);
     CommandResult handleDecr(const Command& cmd);
+    CommandResult handleExpire(const Command& cmd);
+    CommandResult handleTtl(const Command& cmd);
+    CommandResult handlePersist(const Command& cmd);
 public:
     CommandHandler(Database& database);
 
     CommandResult execute(const Command& cmd);
+
+    void cleanUpExpiredKey();
 };
 
 #endif

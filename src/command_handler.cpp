@@ -70,11 +70,27 @@ CommandResult CommandHandler::execute(const Command& cmd){
     if(cmd.command == "DECR"){
         return handleDecr(cmd);
     }
+
+    if(cmd.command == "EXPIRE"){
+        return handleExpire(cmd);
+    }
+
+    if(cmd.command == "TTL"){
+        return handleTtl(cmd);
+    }
+
+    if(cmd.command == "PERSIST"){
+        return handlePersist(cmd);
+    }
     
     return {
         ResultType::Error,
         "Unknown command"
     };
+}
+
+void CommandHandler::cleanUpExpiredKey(){
+    db.removeExpiredKey();
 }
 
 CommandResult CommandHandler::handleSet(const Command& cmd){
@@ -405,7 +421,7 @@ CommandResult CommandHandler::handleIncr(const Command& cmd){
             std::to_string(num + 1)
         };
     }
-    catch(std::exception&){
+    catch(const std::exception&){
         return {
             ResultType::Error,
             "No integer value"
@@ -448,10 +464,96 @@ CommandResult CommandHandler::handleDecr(const Command& cmd){
             std::to_string(num - 1)
         };
     }
-    catch(std::exception&){
+    catch(const std::exception&){
         return {
             ResultType::Error,
             "No integer value"
         };
     }
+}
+
+CommandResult CommandHandler::handleExpire(const Command& cmd){
+
+    if(cmd.args.size() != 2){
+        return {
+            ResultType::Error,
+            "EXPIRE requires two arguments"
+        };
+    }
+
+    auto key = cmd.args[0];
+
+    if(!db.exists(key)){
+        return {
+            ResultType::Error,
+            "Key not found"
+        };
+    }
+
+    try{
+        auto time = std::stoi(cmd.args[1]);
+
+        if(std::to_string(time) != cmd.args[1]){
+            return {
+            ResultType::Error,
+            "Second argument(time) must be integer value"
+            };
+        }
+        bool isExpire = db.expire(key, time);
+
+        if(isExpire){
+            Persistance::saveToFile(db);
+        }
+
+        return {
+            ResultType::Integer,
+            isExpire ? "1" : "0"
+        };
+    }
+    catch(const std::exception&){
+        return {
+            ResultType::Error,
+            "Second argument(time) must be integer value"
+        };
+    }
+}
+
+CommandResult CommandHandler::handleTtl(const Command& cmd){
+    if(cmd.args.size() != 1){
+        return {
+            ResultType::Error,
+            "TTL require one argument"
+        };
+    }
+
+    auto key = cmd.args[0];
+    std::string ttl = std::to_string(db.ttl(key));
+
+    return {
+        ResultType::Integer,
+        ttl
+    };
+}
+
+CommandResult CommandHandler::handlePersist(const Command& cmd){
+    if(cmd.args.size() != 1){
+        return {
+            ResultType::Error,
+            "PERSIST require one argument"
+        };
+    }
+
+    auto key = cmd.args[0];
+
+    bool isPersist = db.persist(key);
+
+    if(isPersist){
+        Persistance::saveToFile(db);
+    }
+
+    return {
+        ResultType::Integer,
+        isPersist ? "1" : "0"
+    };
+
 }
