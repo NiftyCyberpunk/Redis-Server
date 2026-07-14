@@ -83,3 +83,10 @@ bool Database::renameKey(const std::string& oldKey, const std::string& newKey){
 
     return memory.erase(oldKey);
 }
+
+    const std::unordered_map<std::string, std::string>& Database::getAll() const{
+
+        std::lock_guard<std::mutex> lock(memoryMutex);
+        
+        return memory;
+    }

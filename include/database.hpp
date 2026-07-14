@@ -32,6 +32,8 @@ public:
     std::size_t size() const;
 
     bool renameKey(const std::string& oldKey, const std::string& newKey);
+
+    const std::unordered_map<std::string, std::string>& getAll() const;
 };
 
 #endif 

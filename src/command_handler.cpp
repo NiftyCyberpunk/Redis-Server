@@ -1,7 +1,7 @@
 # include "command_handler.hpp"
-# include "command_parser.hpp"
 # include "command_result.hpp"
 # include "database.hpp"
+# include "persistance.hpp"
 # include <cstddef>
 # include <exception>
 # include <string>
@@ -107,6 +107,9 @@ CommandResult CommandHandler::handleSet(const Command& cmd){
     }
 
     db.set(key, data);
+
+    Persistance::saveToFile(db);
+
     return {
         ResultType::SimpleString,
         "OK"
@@ -151,10 +154,13 @@ CommandResult CommandHandler::handleDel(const Command& cmd){
     }
 
     key = cmd.args[0];
+    bool removed = db.remove(key);
+
+    if(removed) Persistance::saveToFile(db);
 
     return {
         ResultType::Integer,
-        db.remove(key) ? "1" : "0"
+        removed ? "1" : "0"
     };
 }
 
@@ -247,6 +253,9 @@ CommandResult CommandHandler::handleFlushDB(const Command& cmd){
         };
     }
     db.clear();
+
+    Persistance::saveToFile(db);
+
     return {
         ResultType::SimpleString,
         "OK"
@@ -296,10 +305,12 @@ CommandResult CommandHandler::handleRename(const Command& cmd){
             "Old key not found"
         };
     }
+    bool renamed = db.renameKey(cmd.args[0], cmd.args[1]);
+    if(renamed) Persistance::saveToFile(db);
 
     return {
         ResultType::SimpleString,
-        db.renameKey(cmd.args[0], cmd.args[1]) ? "OK" : "Rename failed"
+        renamed ? "OK" : "Rename failed"
     };
 }
 
@@ -349,6 +360,9 @@ CommandResult CommandHandler::handleMset(const Command& cmd){
 
         db.set(key, value);
     }
+
+    Persistance::saveToFile(db);
+
     return {
         ResultType::SimpleString,
         "OK"
@@ -383,6 +397,8 @@ CommandResult CommandHandler::handleIncr(const Command& cmd){
         }
 
         db.set(cmd.args[0], std::to_string(num + 1));
+
+        Persistance::saveToFile(db);
 
         return {
             ResultType::Integer,
@@ -424,6 +440,8 @@ CommandResult CommandHandler::handleDecr(const Command& cmd){
         }
 
         db.set(cmd.args[0], std::to_string(num - 1));
+
+        Persistance::saveToFile(db);
 
         return {
             ResultType::Integer,

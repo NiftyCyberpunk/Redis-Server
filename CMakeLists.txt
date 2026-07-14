@@ -14,6 +14,7 @@ add_executable(cpp_redis
     src/protocol_formatter.cpp
     src/logger.cpp
     src/resp_parser.cpp
+    src/persistance.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
@@ -34,6 +35,7 @@ add_executable(redis_tests
     src/command_parser.cpp
     src/command_handler.cpp
     src/protocol_formatter.cpp
+    src/persistance.cpp
 )
 
 target_include_directories(redis_tests PRIVATE

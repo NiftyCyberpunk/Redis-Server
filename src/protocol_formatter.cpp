@@ -33,7 +33,7 @@ std::string ProtocolFormatter::formatter(const CommandResult &result){
         }
 
         case ResultType::Error:{
-            return "-ERROR " + result.value + "\r\n";
+            return "-" + result.value + "\r\n";
         }
     }
     return "-ERROR Unknown result type";
