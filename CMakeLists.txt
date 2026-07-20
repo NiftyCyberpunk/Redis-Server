@@ -16,6 +16,7 @@ add_executable(cpp_redis
     src/resp_parser.cpp
     src/persistance.cpp
     src/config.cpp
+    src/pubsub.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE

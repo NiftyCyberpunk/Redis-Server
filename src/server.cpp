@@ -1,5 +1,6 @@
 # include "server.hpp"
-#include "config.hpp"
+# include "config.hpp"
+# include "pubsub.hpp"
 # include "resp_parser.hpp"
 # include "command_handler.hpp"
 # include "command_result.hpp"
@@ -7,13 +8,13 @@
 # include "logger.hpp"
 # include <WinSock2.h>
 # include <chrono>
-#include <ole2.h>
+# include <ole2.h>
 # include <string>
-#include <vector>
+# include <vector>
 # include <winSock2.h>
 # include <thread>
 
-Server::Server(CommandHandler& commandHandler):serverSocket(INVALID_SOCKET),handler(commandHandler){
+Server::Server(CommandHandler& commandHandler, PubSub& pubsub):serverSocket(INVALID_SOCKET),handler(commandHandler),pubsub(pubsub){
     //No valid socket handled yet
 }
 
@@ -109,6 +110,17 @@ void Server::handleClient(SOCKET clientSocket){
                     continue;
                 }
 
+                if(!session.authenticated && cmd.command != "QUIT" && cmd.command != "AUTH"){
+                    std::string response = "- Authentication required\r\n";
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+
                 if(cmd.command == "MULTI"){
                     if(session.inTransaction){
                         std::string response = "- MULTI calls cannot be nested\r\n";
@@ -192,8 +204,21 @@ void Server::handleClient(SOCKET clientSocket){
                     );
                     continue;
                 }
-                if(!session.authenticated && cmd.command != "QUIT" && cmd.command != "AUTH"){
-                    std::string response = "- Authentication required\r\n";
+
+                if(cmd.command == "SUBSCRIBE"){
+                    if(cmd.args.size() != 1){
+                        std::string response = "- SUBSCRIBE require one argument\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    pubsub.subscribe(cmd.args[0], clientSocket);
+                    std::string response = "+OK\r\n";
                     send(
                         clientSocket,
                         response.data(),
@@ -202,6 +227,71 @@ void Server::handleClient(SOCKET clientSocket){
                     );
                     continue;
                 }
+
+                if(cmd.command == "UNSUBSCRIBE"){
+                    if(cmd.args.size() != 1){
+                        std::string response = "- UNSUBSCRIBE require one argument\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    pubsub.unsubscribe(cmd.args[0], clientSocket);
+                    std::string response = "+OK\r\n";
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+
+                if(cmd.command == "PUBLISH"){
+                    if(cmd.args.size() < 2){
+                        std::string response = "- PUBLISH require atleast two arguments\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+
+                    std::string message = "";
+
+                    for(int i = 1; i < cmd.args.size(); i++){
+                        if(i > 1){
+                            message += " ";
+                        }
+                        message += cmd.args[i];
+                    }
+
+                    int delivered = pubsub.publish(cmd.args[0], message);
+                    
+                    CommandResult result{
+                        ResultType::Integer,
+                        std::to_string(delivered)
+                    };
+
+
+                    std::string response = ProtocolFormatter::formatter(result);
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+
+                }
+
                 if(session.inTransaction){
 
                     session.queuedCommand.push_back(cmd);
@@ -246,6 +336,7 @@ void Server::handleClient(SOCKET clientSocket){
             break;
         }
     }
+    pubsub.removeClient(clientSocket);
     closesocket(clientSocket);
 }
 

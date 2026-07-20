@@ -49,3 +49,14 @@ std::string ProtocolFormatter::formatTransactions(const std::vector<CommandResul
 
     return response;
 }
+
+std::string ProtocolFormatter::formatPubSub(const std::string& channel, const std::string& message){
+    std::string response = "*3\r\n$7\r\nmessage\r\n";
+
+    std::string messageLen = std::to_string(message.size());
+    std::string channelLen = std::to_string(channel.size());
+
+    response += "$" + channelLen + "\r\n" + channel + "\r\n" + "$" + messageLen + "\r\n" + message + "\r\n";
+    
+    return response;
+}

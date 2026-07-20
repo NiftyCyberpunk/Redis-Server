@@ -3,6 +3,7 @@
 # include "database.hpp"
 # include "command_handler.hpp"
 # include "persistance.hpp"
+# include "pubsub.hpp"
 # include "server.hpp"
 //# include <optional>
 
@@ -11,9 +12,11 @@ int main(){
     Config::load("config.cfg");
 
     Database db;
+    PubSub pubsub;
     Persistance::loadFromFile(db);
     CommandHandler handler(db);
-    Server server(handler);
+    
+    Server server(handler, pubsub);
 
     if(!server.start()){
         std::cout <<"Server failed to start\n";
