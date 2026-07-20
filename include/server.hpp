@@ -13,6 +13,7 @@ private:
     struct ClientSession {
         bool inTransaction = false;
         std::vector<Command> queuedCommand;
+        bool authenticated = false;
     };
 public:
     Server(CommandHandler& commandHandler);

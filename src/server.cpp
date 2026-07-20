@@ -7,6 +7,7 @@
 # include "logger.hpp"
 # include <WinSock2.h>
 # include <chrono>
+#include <ole2.h>
 # include <string>
 #include <vector>
 # include <winSock2.h>
@@ -35,6 +36,7 @@ void Server::handleClient(SOCKET clientSocket){
 
 
     ClientSession session;
+    session.authenticated = Config::password.empty();
 
     Logger::info("Client connected");
     std::string pendingData;
@@ -72,6 +74,41 @@ void Server::handleClient(SOCKET clientSocket){
                     break;
                 }
                 Logger::info("Command = [" + cmd.command + "]");
+                if(cmd.command == "AUTH"){
+                    if(cmd.args.size() != 1){
+                        std::string response = "- AUTH require one argument\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    std::string password = cmd.args[0];
+                    if(password == Config::password){
+                        session.authenticated = true;
+                        std::string response = "+OK\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                    }
+                    else{
+                        std::string response = "- Invalid password\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                    }
+                    continue;
+                }
+
                 if(cmd.command == "MULTI"){
                     if(session.inTransaction){
                         std::string response = "- MULTI calls cannot be nested\r\n";
@@ -147,6 +184,16 @@ void Server::handleClient(SOCKET clientSocket){
 
                     std::string response = "+OK\r\n";
 
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+                if(!session.authenticated && cmd.command != "QUIT" && cmd.command != "AUTH"){
+                    std::string response = "- Authentication required\r\n";
                     send(
                         clientSocket,
                         response.data(),

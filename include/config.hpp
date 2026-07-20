@@ -9,4 +9,5 @@ public:
     static int port;
     static std::string dbFile;
     static int cleanupInterval;
+    static std::string password;
 };

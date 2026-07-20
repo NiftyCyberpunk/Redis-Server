@@ -5,6 +5,7 @@
 int Config::port = 6379;
 std::string Config::dbFile = "data/dump.rdb";
 int Config::cleanupInterval = 1;
+std::string Config::password = "";
 
 bool  Config::load(const std::string &filename){
     std::ifstream file(filename);
@@ -34,6 +35,9 @@ bool  Config::load(const std::string &filename){
         }
         if(key == "cleanup_interval"){
             cleanupInterval = std::stoi(value);
+        }
+        if(key == "require_pass"){
+            password = value;
         }
     }
     return true;
