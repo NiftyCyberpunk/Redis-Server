@@ -1,13 +1,14 @@
 # include "persistance.hpp"
+# include "config.hpp"
 # include "database.hpp"
-#include <cstddef>
+# include <cstddef>
 # include <fstream>
 # include <string>
 # include <limits>
 
 bool Persistance::saveToFile(const Database& db){
 
-    std::ofstream file("data/dump.rdb");
+    std::ofstream file(Config::dbFile);
 
     if(!file){
         return false;
@@ -26,7 +27,7 @@ bool Persistance::saveToFile(const Database& db){
 }
 
 bool Persistance::loadFromFile(Database &db){
-    std::ifstream file("data/dump.rdb");
+    std::ifstream file(Config::dbFile);
 
     if(!file){
         return false;

@@ -1,11 +1,12 @@
 # include "server.hpp"
+#include "config.hpp"
 # include "resp_parser.hpp"
 # include "command_handler.hpp"
 # include "command_result.hpp"
 # include "protocol_formatter.hpp"
 # include "logger.hpp"
 # include <WinSock2.h>
-#include <chrono>
+# include <chrono>
 # include <string>
 # include <winSock2.h>
 # include <thread>
@@ -25,7 +26,7 @@ void Server::cleanUpExpiredKeys(){
     while(true){
         handler.cleanUpExpiredKey();
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(Config::cleanupInterval));
     }
 }
 
@@ -128,7 +129,7 @@ bool Server::start(){
     sockaddr_in serverAddress{};
     
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(6379);//htons --> host to network short
+    serverAddress.sin_port = htons(Config::port);//htons --> host to network short
     //Network protocols use network byte order, so htons() converts the 16-bit port number into the required byte order.
     serverAddress.sin_addr.s_addr = INADDR_ANY;//Any IPv4 address
 
@@ -159,7 +160,7 @@ bool Server::start(){
         return false;
     }
 
-    Logger::info("Server listening on port 6379");    
+    Logger::info("Server listening on port " + std::to_string(Config::port));    
     
     
     Logger::info("Waiting for client");    

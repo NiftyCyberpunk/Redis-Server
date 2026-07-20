@@ -18,6 +18,7 @@ void Database::set(const std::string& key, const std::string& value){
         it prevents us to manually lock and unlock it
     */
     memory[key] = value;
+    expirations.erase(key);
 }
 
 std::optional<std::string> Database::get(const std::string& key) const{
@@ -35,7 +36,7 @@ std::optional<std::string> Database::get(const std::string& key) const{
 bool Database::remove(const std::string& key){
     
     std::lock_guard<std::mutex> lock(dbMutex);
-
+    expirations.erase(key);
     return memory.erase(key);
 }
 
@@ -68,6 +69,7 @@ void Database::clear(){
     std::lock_guard<std::mutex> lock(dbMutex);
 
     memory.clear();
+    expirations.clear();
 }
 
 std::size_t Database::size() const{
@@ -81,7 +83,8 @@ std::size_t Database::size() const{
 
 bool Database::renameKey(const std::string& oldKey, const std::string& newKey){
     memory[newKey] = memory[oldKey];
-
+    expirations[newKey] = expirations[oldKey];
+    expirations.erase(oldKey);
     return memory.erase(oldKey);
 }
 

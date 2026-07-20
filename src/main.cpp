@@ -1,4 +1,5 @@
 # include <iostream>
+#include "config.hpp"
 # include "database.hpp"
 # include "command_handler.hpp"
 # include "persistance.hpp"
@@ -7,10 +8,10 @@
 
 int main(){
 
+    Config::load("config.cfg");
+
     Database db;
-    std::cout << "Before load\n";
     Persistance::loadFromFile(db);
-    std::cout << "After load\n";
     CommandHandler handler(db);
     Server server(handler);
 
