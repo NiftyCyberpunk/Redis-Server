@@ -9,6 +9,11 @@ class Server{
 private:
     SOCKET serverSocket;//SOCKET is windows defined type to handles sockets
     CommandHandler& handler;
+
+    struct ClientSession {
+        bool inTransaction = false;
+        std::vector<Command> queuedCommand;
+    };
 public:
     Server(CommandHandler& commandHandler);
     ~Server();

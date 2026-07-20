@@ -8,6 +8,7 @@
 # include <WinSock2.h>
 # include <chrono>
 # include <string>
+#include <vector>
 # include <winSock2.h>
 # include <thread>
 
@@ -31,6 +32,10 @@ void Server::cleanUpExpiredKeys(){
 }
 
 void Server::handleClient(SOCKET clientSocket){
+
+
+    ClientSession session;
+
     Logger::info("Client connected");
     std::string pendingData;
     bool isConnected = true;
@@ -50,6 +55,7 @@ void Server::handleClient(SOCKET clientSocket){
             Command cmd = RespParser::parse(pendingData);
 
             if(cmd.valid){
+                pendingData.clear();
                 if(cmd.command == "QUIT"){
                     std::string endMsg = "+OK\r\n";
                     int byteSend = send(
@@ -65,7 +71,104 @@ void Server::handleClient(SOCKET clientSocket){
                     isConnected = false;
                     break;
                 }
+                Logger::info("Command = [" + cmd.command + "]");
+                if(cmd.command == "MULTI"){
+                    if(session.inTransaction){
+                        std::string response = "- MULTI calls cannot be nested\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
 
+                    session.inTransaction = true;
+
+                    std::string response = "+OK\r\n";
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+
+                    continue;
+                }
+
+                if(cmd.command == "EXEC"){
+
+                    if(!session.inTransaction){
+                        std::string response = "- EXEC without MULTI\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    std::vector<CommandResult> results;
+
+                    for(const auto& command : session.queuedCommand){
+                        results.push_back(handler.execute(command));
+                    }
+
+                    session.queuedCommand.clear();
+                    session.inTransaction = false;
+
+                    std::string response = ProtocolFormatter::formatTransactions(results);
+
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+
+                if(cmd.command == "DISCARD"){
+                    if(!session.inTransaction){
+                        std::string response = "- DISCARD without MULTI\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    session.queuedCommand.clear();
+                    session.inTransaction = false;
+
+                    std::string response = "+OK\r\n";
+
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+                if(session.inTransaction){
+
+                    session.queuedCommand.push_back(cmd);
+                    std::string response = "+QUEUED\r\n";
+
+                    send(
+                        clientSocket,
+                        response.data(),
+                        static_cast<int>(response.size()),
+                        0
+                    );
+                    continue;
+                }
+                
                 CommandResult result = handler.execute(cmd);
 
                 std::string response = ProtocolFormatter::formatter(result);
@@ -76,8 +179,6 @@ void Server::handleClient(SOCKET clientSocket){
                     static_cast<int>(response.size()),
                     0
                 );
-
-                pendingData.clear();
                 
                 if(bytesSend == SOCKET_ERROR){
                     Logger::error("Send failed" + std::to_string(WSAGetLastError()));

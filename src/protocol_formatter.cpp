@@ -38,3 +38,14 @@ std::string ProtocolFormatter::formatter(const CommandResult &result){
     }
     return "-ERROR Unknown result type";
 }
+
+std::string ProtocolFormatter::formatTransactions(const std::vector<CommandResult> &results){
+
+    std::string response = "*" + std::to_string(results.size()) + "\r\n";
+
+    for(const auto& result : results){
+        response += formatter(result);
+    }
+
+    return response;
+}
