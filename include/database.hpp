@@ -12,7 +12,7 @@
 class Database{
 private:
     std::unordered_map<std::string, std::string> memory;
-    std::unordered_map<std::string, std::chrono::steady_clock::time_point>expirations;
+    std::unordered_map<std::string, std::chrono::system_clock::time_point>expirations;
 
     mutable std::mutex dbMutex; //lock the database so only one thread can access at the moment
     //mutable is used bcz when the mutex is lcoked it changes it state which will not be possible 
@@ -45,6 +45,10 @@ public:
     bool persist(const std::string& key);
 
     void removeExpiredKey();
+
+    std::optional<std::chrono::system_clock::time_point> getExpiration(const std::string& key) const;
+
+    void setExpiration(const std::string& key, std::chrono::system_clock::time_point& expiry);
 };
 
 #endif 

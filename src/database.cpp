@@ -103,7 +103,7 @@ bool Database::expire(const std::string& key, int seconds){
         return false;
     }
 
-    expirations[key] = std::chrono::steady_clock::now() + std::chrono::seconds(seconds);
+    expirations[key] = std::chrono::system_clock::now() + std::chrono::seconds(seconds);
 
     auto it = expirations.find(key);
 
@@ -124,7 +124,7 @@ int Database::ttl(const std::string& key){
         return -1;//Key present but has no expiration
     }
     
-    auto now = std::chrono::steady_clock::now();
+    auto now = std::chrono::system_clock::now();
     auto expiry = itr->second;
 
     auto remaining = expiry - now;
@@ -154,7 +154,7 @@ void Database::removeExpiredKey(){
 
     std::lock_guard<std::mutex> lock(dbMutex);
 
-    const auto& now = std::chrono::steady_clock::now();
+    const auto& now = std::chrono::system_clock::now();
     auto it = memory.begin();
 
     while(it != memory.end()){
@@ -169,4 +169,27 @@ void Database::removeExpiredKey(){
             ++it;
         }
     }
+}
+
+std::optional<std::chrono::system_clock::time_point> Database::getExpiration(const std::string& key) const{
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    auto itr = expirations.find(key);
+
+    if(itr != expirations.end()){
+        return itr->second;
+    }
+    return std::nullopt;
+}
+
+void Database::setExpiration(const std::string& key, std::chrono::system_clock::time_point& expiry){
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    if(memory.find(key) == memory.end()){
+        return;
+    }
+
+    expirations[key] = expiry;
 }
