@@ -1,7 +1,9 @@
 # include "command_handler.hpp"
+# include "aof.hpp"
 # include "command_result.hpp"
+# include "config.hpp"
 # include "database.hpp"
-# include "persistance.hpp"
+# include "persistence.hpp"
 #include <chrono>
 # include <cstddef>
 # include <exception>
@@ -98,6 +100,17 @@ void CommandHandler::cleanUpExpiredKey(){
     db.removeExpiredKey();
 }
 
+bool CommandHandler::persistence(const Command& cmd){
+    if(!AOF::append(cmd.raw)){
+        return false;
+    }
+    if(!Config::appendOnly){
+        Persistence::saveToFile(db);
+    }
+
+    return true;
+}
+
 CommandResult CommandHandler::handleSet(const Command& cmd){
     std::string key;
     std::string data = "";
@@ -129,7 +142,12 @@ CommandResult CommandHandler::handleSet(const Command& cmd){
 
     db.set(key, data);
 
-    //Persistance::saveToFile(db);
+    if(!persistence(cmd)){
+        return {
+            ResultType::Error,
+            "Failed to persist data"
+        };
+    }
 
     return {
         ResultType::SimpleString,
@@ -177,7 +195,14 @@ CommandResult CommandHandler::handleDel(const Command& cmd){
     key = cmd.args[0];
     bool removed = db.remove(key);
 
-    if(removed) Persistance::saveToFile(db);
+    if(removed){
+        if(!persistence(cmd)){
+            return {
+                ResultType::Error,
+                "Failed to persist data"
+            };
+        }
+    }
 
     return {
         ResultType::Integer,
@@ -275,7 +300,12 @@ CommandResult CommandHandler::handleFlushDB(const Command& cmd){
     }
     db.clear();
 
-    Persistance::saveToFile(db);
+    if(!persistence(cmd)){
+        return {
+            ResultType::Error,
+            "Failed to persist data"
+        };
+    }
 
     return {
         ResultType::SimpleString,
@@ -327,7 +357,14 @@ CommandResult CommandHandler::handleRename(const Command& cmd){
         };
     }
     bool renamed = db.renameKey(cmd.args[0], cmd.args[1]);
-    if(renamed) Persistance::saveToFile(db);
+    if(renamed){
+        if(!persistence(cmd)){
+            return {
+                ResultType::Error,
+                "Failed to persist data"
+            };
+        }
+    }
 
     return {
         ResultType::SimpleString,
@@ -382,7 +419,12 @@ CommandResult CommandHandler::handleMset(const Command& cmd){
         db.set(key, value);
     }
 
-    Persistance::saveToFile(db);
+    if(!persistence(cmd)){
+        return {
+            ResultType::Error,
+            "Failed to persist data"
+        };
+    }
 
     return {
         ResultType::SimpleString,
@@ -419,7 +461,12 @@ CommandResult CommandHandler::handleIncr(const Command& cmd){
 
         db.set(cmd.args[0], std::to_string(num + 1));
 
-        Persistance::saveToFile(db);
+        if(!persistence(cmd)){
+            return {
+                ResultType::Error,
+                "Failed to persist data"
+            };
+        }
 
         return {
             ResultType::Integer,
@@ -462,7 +509,12 @@ CommandResult CommandHandler::handleDecr(const Command& cmd){
 
         db.set(cmd.args[0], std::to_string(num - 1));
 
-        Persistance::saveToFile(db);
+        if(!persistence(cmd)){
+            return {
+                ResultType::Error,
+                "Failed to persist data"
+            };
+        }
 
         return {
             ResultType::Integer,
@@ -507,7 +559,12 @@ CommandResult CommandHandler::handleExpire(const Command& cmd){
         bool isExpire = db.expire(key, time);
 
         if(isExpire){
-            Persistance::saveToFile(db);
+            if(!persistence(cmd)){
+                return {
+                    ResultType::Error,
+                    "Failed to persist data"
+                };
+            }
         }
 
         return {
@@ -553,7 +610,12 @@ CommandResult CommandHandler::handlePersist(const Command& cmd){
     bool isPersist = db.persist(key);
 
     if(isPersist){
-        Persistance::saveToFile(db);
+        if(!persistence(cmd)){
+            return {
+                ResultType::Error,
+                "Failed to persist data"
+            };
+        }
     }
 
     return {

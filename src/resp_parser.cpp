@@ -83,6 +83,7 @@ Command RespParser::parse(const std::string& input){
 
         current = argStart + bulkLength + 2;
     }
+    cmd.raw = input.substr(0, current);
     cmd.bytesConsumed = current;
 
     return cmd;

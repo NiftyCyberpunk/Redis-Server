@@ -6,6 +6,8 @@ int Config::port = 6379;
 std::string Config::dbFile = "data/dump.rdb";
 int Config::cleanupInterval = 1;
 std::string Config::password = "";
+bool Config::appendOnly = false;
+std::string Config::appendFile = "data/append_only.aof";
 
 bool  Config::load(const std::string &filename){
     std::ifstream file(filename);
@@ -38,6 +40,17 @@ bool  Config::load(const std::string &filename){
         }
         if(key == "require_pass"){
             password = value;
+        }
+        if(key == "append_only"){
+            if(value == "yes"){
+                appendOnly = true;
+            }
+            else{
+                appendOnly = false;
+            }
+        }
+        if(key == "append_file"){
+            appendFile = value;
         }
     }
     return true;

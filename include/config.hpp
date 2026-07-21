@@ -10,4 +10,6 @@ public:
     static std::string dbFile;
     static int cleanupInterval;
     static std::string password;
+    static bool appendOnly;
+    static std::string appendFile;
 };

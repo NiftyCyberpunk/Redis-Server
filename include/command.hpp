@@ -11,4 +11,5 @@ struct Command{
 
     bool valid = true;
     std::string errMsg;
+    std::string raw;
 };
