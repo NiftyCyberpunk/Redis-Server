@@ -1,12 +1,13 @@
 #include "command_handler.hpp"
-#include "command_parser.hpp"
 #include "command_result.hpp"
 # include "database.hpp"
+#include "server_stats.hpp"
 # include "tests_utils.hpp"
 
 void testSetCommand(){
     Database db;
-    CommandHandler handler(db);
+    ServerStats stats;
+    CommandHandler handler(db, stats);
 
     Command cmd;
     cmd.command = "SET";
@@ -24,7 +25,8 @@ void testSetCommand(){
 }
 void testGetCommand(){
     Database db;
-    CommandHandler handler(db);
+    ServerStats stats;
+    CommandHandler handler(db, stats);
 
     db.set("name", "Aryan");
 
@@ -38,7 +40,8 @@ void testGetCommand(){
 }
 void testPingCommand(){
     Database db;
-    CommandHandler handler(db);
+    ServerStats stats;
+    CommandHandler handler(db, stats);
 
     Command cmd;
     cmd.command = "PING";
@@ -50,7 +53,8 @@ void testPingCommand(){
 
 void testGetInvalidArguments(){
     Database db;
-    CommandHandler handler(db);
+    ServerStats stats;
+    CommandHandler handler(db, stats);
 
     Command cmd;
     cmd.command = "GET";

@@ -3,10 +3,12 @@
 # include "command.hpp"
 # include "command_result.hpp"
 # include "database.hpp"
+# include "server_stats.hpp"
 
 class CommandHandler{
 private:
     Database& db;
+    ServerStats& stats;
 
     CommandResult handleSet(const Command& cmd);
     CommandResult handleGet(const Command& cmd);
@@ -26,8 +28,9 @@ private:
     CommandResult handleExpire(const Command& cmd);
     CommandResult handleTtl(const Command& cmd);
     CommandResult handlePersist(const Command& cmd);
+    CommandResult handleInfo(const Command& cmd);
 public:
-    CommandHandler(Database& database);
+    CommandHandler(Database& database, ServerStats& stats);
 
     CommandResult execute(const Command& cmd);
 

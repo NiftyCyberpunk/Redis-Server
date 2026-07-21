@@ -2,12 +2,13 @@
 # include "command_result.hpp"
 # include "database.hpp"
 # include "persistance.hpp"
+#include <chrono>
 # include <cstddef>
 # include <exception>
 # include <string>
 # include <vector>
 
-CommandHandler::CommandHandler(Database& database) : db(database){
+CommandHandler::CommandHandler(Database& database, ServerStats& stats) : db(database), stats(stats){
 
 }
 
@@ -81,6 +82,10 @@ CommandResult CommandHandler::execute(const Command& cmd){
 
     if(cmd.command == "PERSIST"){
         return handlePersist(cmd);
+    }
+
+    if(cmd.command == "INFO"){
+        return handleInfo(cmd);
     }
     
     return {
@@ -556,4 +561,30 @@ CommandResult CommandHandler::handlePersist(const Command& cmd){
         isPersist ? "1" : "0"
     };
 
+}
+
+CommandResult CommandHandler::handleInfo(const Command& cmd){
+
+    std::string info;
+
+    auto uptime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - stats.startTime
+    ).count();
+
+    info += "#Server\r\n";
+    info += "uptime_in_seconds: " + std::to_string(uptime) + "\r\n";
+
+    info += "#Clients\r\n";
+    info += "connected_clients: " + std::to_string(stats.connectedClients) + "\r\n";
+
+    info += "#Stats\r\n";
+    info += "total_commands_processed: " + std::to_string(stats.totalCommands) + "\r\n";
+
+    info += "#Keyspace\r\n";
+    info += "keys: " + std::to_string(db.size()) + "\r\n";
+
+    return {
+        ResultType::BulkString,
+        info
+    };
 }

@@ -5,6 +5,7 @@
 # include "persistance.hpp"
 # include "pubsub.hpp"
 # include "server.hpp"
+# include "server_stats.hpp"
 //# include <optional>
 
 int main(){
@@ -13,10 +14,13 @@ int main(){
 
     Database db;
     PubSub pubsub;
+    ServerStats stats;
     Persistance::loadFromFile(db);
-    CommandHandler handler(db);
-    
-    Server server(handler, pubsub);
+
+    stats.startTime = std::chrono::steady_clock::now();
+
+    CommandHandler handler(db, stats);
+    Server server(handler, pubsub, stats);
 
     if(!server.start()){
         std::cout <<"Server failed to start\n";

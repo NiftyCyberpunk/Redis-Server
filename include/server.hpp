@@ -11,6 +11,7 @@ private:
     SOCKET serverSocket;//SOCKET is windows defined type to handles sockets
     CommandHandler& handler;
     PubSub& pubsub;
+    ServerStats& stats;
 
     struct ClientSession {
         bool inTransaction = false;
@@ -18,7 +19,7 @@ private:
         bool authenticated = false;
     };
 public:
-    Server(CommandHandler& commandHandler, PubSub& pubsub);
+    Server(CommandHandler& commandHandler, PubSub& pubsub, ServerStats& stats);
     ~Server();
     
     void handleClient(SOCKET clientSocket);
