@@ -1,6 +1,6 @@
 # include "resp_parser.hpp"
-#include <cstddef>
-#include <string>
+# include <cstddef>
+# include <string>
 
 Command RespParser::parse(const std::string& input){
     Command cmd;
@@ -22,7 +22,7 @@ Command RespParser::parse(const std::string& input){
 
     int arrLen = std::stoi(input.substr(1, lenEnd - 1));
 
-    size_t pos = input.find('$');
+    size_t pos = input.find('$', lenEnd + 2);
     if(pos == std::string::npos){
         return {
             .valid = false,
@@ -41,6 +41,12 @@ Command RespParser::parse(const std::string& input){
     int bulkLength = std::stoi(input.substr(pos + 1, end - pos - 1));
 
     size_t commandStart = end + 2;
+
+    if(commandStart + bulkLength + 2 > input.size()){
+        return {
+            .valid = false
+        };
+    }
 
     cmd.command = input.substr(commandStart, bulkLength);
 
@@ -66,9 +72,18 @@ Command RespParser::parse(const std::string& input){
 
         bulkLength = std::stoi(input.substr(dollar + 1, lineEnd - dollar - 1));
         size_t argStart = lineEnd + 2;
+
+        if(argStart + bulkLength + 2 > input.size()){
+            return {
+                .valid = false
+            };
+        }
+
         cmd.args.push_back(input.substr(argStart ,bulkLength));
 
         current = argStart + bulkLength + 2;
     }
+    cmd.bytesConsumed = current;
+
     return cmd;
 }

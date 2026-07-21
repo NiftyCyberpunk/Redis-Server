@@ -44,3 +44,9 @@ add_executable(redis_tests
 target_include_directories(redis_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
+
+add_executable(redis_benchmark
+    benchmarks/benchmark.cpp
+)
+
+target_link_libraries(redis_benchmark PRIVATE ws2_32)

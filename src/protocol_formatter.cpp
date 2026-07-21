@@ -1,7 +1,7 @@
 # include "protocol_formatter.hpp"
-#include "command_result.hpp"
-#include <cstddef>
-#include <string>
+# include "command_result.hpp"
+# include <cstddef>
+# include <string>
 
 std::string ProtocolFormatter::formatter(const CommandResult &result){
     switch(result.type){

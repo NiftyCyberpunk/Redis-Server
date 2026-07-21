@@ -55,29 +55,70 @@ void Server::handleClient(SOCKET clientSocket){
         if(bytesReceived > 0){
             pendingData.append(buffer, bytesReceived);
             
-            Command cmd = RespParser::parse(pendingData);
+            while(!pendingData.empty()){
+                Command cmd = RespParser::parse(pendingData);
 
-            if(cmd.valid){
-                pendingData.clear();
-                if(cmd.command == "QUIT"){
-                    std::string endMsg = "+OK\r\n";
-                    int byteSend = send(
-                        clientSocket,
-                        endMsg.data(),
-                        static_cast<int>(endMsg.size()),
-                        0
-                    );
-                    
-                    if(byteSend == SOCKET_ERROR){
-                        Logger::error("Send failed" + std::to_string(WSAGetLastError()));
-                    }
-                    isConnected = false;
+                if (!cmd.valid) {
                     break;
                 }
-                Logger::info("Command = [" + cmd.command + "]");
-                if(cmd.command == "AUTH"){
-                    if(cmd.args.size() != 1){
-                        std::string response = "- AUTH require one argument\r\n";
+
+                pendingData.erase(0, cmd.bytesConsumed);
+
+                if(cmd.valid){
+                    
+                    if(cmd.command == "QUIT"){
+                        std::string endMsg = "+OK\r\n";
+                        int byteSend = send(
+                            clientSocket,
+                            endMsg.data(),
+                            static_cast<int>(endMsg.size()),
+                            0
+                        );
+                        
+                        if(byteSend == SOCKET_ERROR){
+                            Logger::error("Send failed" + std::to_string(WSAGetLastError()));
+                        }
+                        isConnected = false;
+                        break;
+                    }
+                    //Logger::info("Command = [" + cmd.command + "]");
+                    if(cmd.command == "AUTH"){
+                        if(cmd.args.size() != 1){
+                            std::string response = "- AUTH require one argument\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
+
+                        std::string password = cmd.args[0];
+                        if(password == Config::password){
+                            session.authenticated = true;
+                            std::string response = "+OK\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                        }
+                        else{
+                            std::string response = "- Invalid password\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                        }
+                        continue;
+                    }
+
+                    if(!session.authenticated && cmd.command != "QUIT" && cmd.command != "AUTH"){
+                        std::string response = "- Authentication required\r\n";
                         send(
                             clientSocket,
                             response.data(),
@@ -87,9 +128,20 @@ void Server::handleClient(SOCKET clientSocket){
                         continue;
                     }
 
-                    std::string password = cmd.args[0];
-                    if(password == Config::password){
-                        session.authenticated = true;
+                    if(cmd.command == "MULTI"){
+                        if(session.inTransaction){
+                            std::string response = "- MULTI calls cannot be nested\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
+
+                        session.inTransaction = true;
+
                         std::string response = "+OK\r\n";
                         send(
                             clientSocket,
@@ -97,229 +149,185 @@ void Server::handleClient(SOCKET clientSocket){
                             static_cast<int>(response.size()),
                             0
                         );
-                    }
-                    else{
-                        std::string response = "- Invalid password\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                    }
-                    continue;
-                }
 
-                if(!session.authenticated && cmd.command != "QUIT" && cmd.command != "AUTH"){
-                    std::string response = "- Authentication required\r\n";
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-
-                if(cmd.command == "MULTI"){
-                    if(session.inTransaction){
-                        std::string response = "- MULTI calls cannot be nested\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
                         continue;
                     }
 
-                    session.inTransaction = true;
+                    if(cmd.command == "EXEC"){
 
-                    std::string response = "+OK\r\n";
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-
-                    continue;
-                }
-
-                if(cmd.command == "EXEC"){
-
-                    if(!session.inTransaction){
-                        std::string response = "- EXEC without MULTI\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                        continue;
-                    }
-
-                    std::vector<CommandResult> results;
-
-                    for(const auto& command : session.queuedCommand){
-                        results.push_back(handler.execute(command));
-                    }
-
-                    session.queuedCommand.clear();
-                    session.inTransaction = false;
-
-                    std::string response = ProtocolFormatter::formatTransactions(results);
-
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-
-                if(cmd.command == "DISCARD"){
-                    if(!session.inTransaction){
-                        std::string response = "- DISCARD without MULTI\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                        continue;
-                    }
-
-                    session.queuedCommand.clear();
-                    session.inTransaction = false;
-
-                    std::string response = "+OK\r\n";
-
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-
-                if(cmd.command == "SUBSCRIBE"){
-                    if(cmd.args.size() != 1){
-                        std::string response = "- SUBSCRIBE require one argument\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                        continue;
-                    }
-
-                    pubsub.subscribe(cmd.args[0], clientSocket);
-                    std::string response = "+OK\r\n";
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-
-                if(cmd.command == "UNSUBSCRIBE"){
-                    if(cmd.args.size() != 1){
-                        std::string response = "- UNSUBSCRIBE require one argument\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                        continue;
-                    }
-
-                    pubsub.unsubscribe(cmd.args[0], clientSocket);
-                    std::string response = "+OK\r\n";
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-
-                if(cmd.command == "PUBLISH"){
-                    if(cmd.args.size() < 2){
-                        std::string response = "- PUBLISH require atleast two arguments\r\n";
-                        send(
-                            clientSocket,
-                            response.data(),
-                            static_cast<int>(response.size()),
-                            0
-                        );
-                        continue;
-                    }
-
-
-                    std::string message = "";
-
-                    for(int i = 1; i < cmd.args.size(); i++){
-                        if(i > 1){
-                            message += " ";
+                        if(!session.inTransaction){
+                            std::string response = "- EXEC without MULTI\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
                         }
-                        message += cmd.args[i];
+
+                        std::vector<CommandResult> results;
+
+                        for(const auto& command : session.queuedCommand){
+                            results.push_back(handler.execute(command));
+                        }
+
+                        session.queuedCommand.clear();
+                        session.inTransaction = false;
+
+                        std::string response = ProtocolFormatter::formatTransactions(results);
+
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
                     }
 
-                    int delivered = pubsub.publish(cmd.args[0], message);
-                    
-                    CommandResult result{
-                        ResultType::Integer,
-                        std::to_string(delivered)
-                    };
+                    if(cmd.command == "DISCARD"){
+                        if(!session.inTransaction){
+                            std::string response = "- DISCARD without MULTI\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
 
+                        session.queuedCommand.clear();
+                        session.inTransaction = false;
+
+                        std::string response = "+OK\r\n";
+
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    if(cmd.command == "SUBSCRIBE"){
+                        if(cmd.args.size() != 1){
+                            std::string response = "- SUBSCRIBE require one argument\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
+
+                        pubsub.subscribe(cmd.args[0], clientSocket);
+                        std::string response = "+OK\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    if(cmd.command == "UNSUBSCRIBE"){
+                        if(cmd.args.size() != 1){
+                            std::string response = "- UNSUBSCRIBE require one argument\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
+
+                        pubsub.unsubscribe(cmd.args[0], clientSocket);
+                        std::string response = "+OK\r\n";
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+
+                    if(cmd.command == "PUBLISH"){
+                        if(cmd.args.size() < 2){
+                            std::string response = "- PUBLISH require atleast two arguments\r\n";
+                            send(
+                                clientSocket,
+                                response.data(),
+                                static_cast<int>(response.size()),
+                                0
+                            );
+                            continue;
+                        }
+
+
+                        std::string message = "";
+
+                        for(int i = 1; i < cmd.args.size(); i++){
+                            if(i > 1){
+                                message += " ";
+                            }
+                            message += cmd.args[i];
+                        }
+
+                        int delivered = pubsub.publish(cmd.args[0], message);
+                        
+                        CommandResult result{
+                            ResultType::Integer,
+                            std::to_string(delivered)
+                        };
+
+
+                        std::string response = ProtocolFormatter::formatter(result);
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+
+                    }
+
+                    if(session.inTransaction){
+
+                        session.queuedCommand.push_back(cmd);
+                        std::string response = "+QUEUED\r\n";
+
+                        send(
+                            clientSocket,
+                            response.data(),
+                            static_cast<int>(response.size()),
+                            0
+                        );
+                        continue;
+                    }
+                    
+                    CommandResult result = handler.execute(cmd);
 
                     std::string response = ProtocolFormatter::formatter(result);
-                    send(
+                    
+                    int bytesSend = send(
                         clientSocket,
                         response.data(),
                         static_cast<int>(response.size()),
                         0
                     );
-                    continue;
-
-                }
-
-                if(session.inTransaction){
-
-                    session.queuedCommand.push_back(cmd);
-                    std::string response = "+QUEUED\r\n";
-
-                    send(
-                        clientSocket,
-                        response.data(),
-                        static_cast<int>(response.size()),
-                        0
-                    );
-                    continue;
-                }
-                
-                CommandResult result = handler.execute(cmd);
-
-                std::string response = ProtocolFormatter::formatter(result);
-                
-                int bytesSend = send(
-                    clientSocket,
-                    response.data(),
-                    static_cast<int>(response.size()),
-                    0
-                );
-                
-                if(bytesSend == SOCKET_ERROR){
-                    Logger::error("Send failed" + std::to_string(WSAGetLastError()));
-                    break;
+                    
+                    if(bytesSend == SOCKET_ERROR){
+                        Logger::error("Send failed" + std::to_string(WSAGetLastError()));
+                        break;
+                    }
                 }
             }
         }

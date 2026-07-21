@@ -1,9 +1,9 @@
 # include "pubsub.hpp"
-#include "protocol_formatter.hpp"
+# include "protocol_formatter.hpp"
 # include <WinSock2.h>
 # include <mutex>
 # include <unordered_set>
-#include <winbase.h>
+# include <winbase.h>
 
 void PubSub::subscribe(const std::string& channel, SOCKET client){
 

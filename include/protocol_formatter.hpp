@@ -1,8 +1,8 @@
 # pragma once
 
-#include "command_result.hpp"
-#include <string>
-#include <vector>
+# include "command_result.hpp"
+# include <string>
+# include <vector>
 class ProtocolFormatter {
 public:
     static std::string formatter(const CommandResult& result);

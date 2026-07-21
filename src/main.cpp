@@ -1,5 +1,5 @@
 # include <iostream>
-#include "config.hpp"
+# include "config.hpp"
 # include "database.hpp"
 # include "command_handler.hpp"
 # include "persistance.hpp"

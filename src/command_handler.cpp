@@ -124,7 +124,7 @@ CommandResult CommandHandler::handleSet(const Command& cmd){
 
     db.set(key, data);
 
-    Persistance::saveToFile(db);
+    //Persistance::saveToFile(db);
 
     return {
         ResultType::SimpleString,
