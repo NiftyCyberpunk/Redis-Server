@@ -10,6 +10,14 @@ public:
     static std::string dbFile;
     static int cleanupInterval;
     static std::string password;
+
     static bool appendOnly;
     static std::string appendFile;
+
+
+    static int replicaPort;
+    static bool isReplica;
+    static std::string replicaOf;
+    static std::string masterHost;
+    static int masterPort;
 };

@@ -1,4 +1,5 @@
 # include "config.hpp"
+#include <cstddef>
 # include <fstream>
 # include <string>
 
@@ -6,8 +7,15 @@ int Config::port = 6379;
 std::string Config::dbFile = "data/dump.rdb";
 int Config::cleanupInterval = 1;
 std::string Config::password = "";
+
 bool Config::appendOnly = false;
-std::string Config::appendFile = "data/append_only.aof";
+std::string Config::appendFile = "data/master.aof";
+
+int Config::replicaPort = 6380;
+bool Config::isReplica = true;
+std::string Config::replicaOf = "127.0.0.1:6379";
+std::string Config::masterHost = "127.0.0.1";
+int Config::masterPort = 6379;
 
 bool  Config::load(const std::string &filename){
     std::ifstream file(filename);
@@ -51,6 +59,23 @@ bool  Config::load(const std::string &filename){
         }
         if(key == "append_file"){
             appendFile = value;
+        }
+        if(key == "replica_port"){
+            replicaPort = std::stoi(value);
+        }
+        if(key == "replica_of"){
+            replicaOf = value;
+            if(!replicaOf.empty()){
+                size_t pos = replicaOf.find(':');
+
+                masterHost = replicaOf.substr(0, pos);
+                masterPort = std::stoi(replicaOf.substr(pos + 1));
+
+                isReplica = true;
+            }
+            else{
+                isReplica = false;
+            }
         }
     }
     return true;

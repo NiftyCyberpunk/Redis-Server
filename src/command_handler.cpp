@@ -4,7 +4,8 @@
 # include "config.hpp"
 # include "database.hpp"
 # include "persistence.hpp"
-#include <chrono>
+# include "logger.hpp"
+# include <chrono>
 # include <cstddef>
 # include <exception>
 # include <string>
@@ -89,6 +90,12 @@ CommandResult CommandHandler::execute(const Command& cmd){
     if(cmd.command == "INFO"){
         return handleInfo(cmd);
     }
+    if(cmd.command == "REPLCONF"){
+        return handleReplConf(cmd);
+    }
+    if(cmd.command == "PSYNC"){
+        return handlePsync(cmd);
+    }
     
     return {
         ResultType::Error,
@@ -104,10 +111,13 @@ bool CommandHandler::persistence(const Command& cmd){
     if(!AOF::append(cmd.raw)){
         return false;
     }
+    // else{
+    //     Logger::info("AOF append succeeded");
+    // }
     if(!Config::appendOnly){
         Persistence::saveToFile(db);
     }
-
+    
     return true;
 }
 
@@ -648,5 +658,19 @@ CommandResult CommandHandler::handleInfo(const Command& cmd){
     return {
         ResultType::BulkString,
         info
+    };
+}
+
+CommandResult CommandHandler::handleReplConf(const Command& cmd){
+    return{
+        ResultType::SimpleString,
+        "OK"
+    };
+}
+
+CommandResult CommandHandler::handlePsync(const Command& cmd){
+    return{
+        ResultType::SimpleString,
+        "FULLRESYNC abcdef1234567890"
     };
 }

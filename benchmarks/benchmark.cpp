@@ -103,6 +103,8 @@ int main(){
     }
     auto end = std::chrono::steady_clock::now();
 
+    closesocket(client);
+
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     double ops = 100000.0/(elapsed.count()/1000.0);

@@ -29,6 +29,8 @@ private:
     CommandResult handleTtl(const Command& cmd);
     CommandResult handlePersist(const Command& cmd);
     CommandResult handleInfo(const Command& cmd);
+    CommandResult handleReplConf(const Command& cmd);
+    CommandResult handlePsync(const Command& cmd);
 
     bool persistence(const Command& cmd);
 public:

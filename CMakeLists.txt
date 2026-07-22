@@ -18,6 +18,7 @@ add_executable(cpp_redis
     src/config.cpp
     src/pubsub.cpp
     src/aof.cpp
+    src/replica_client.cpp
 )
 
 target_include_directories(cpp_redis PRIVATE
@@ -42,6 +43,7 @@ add_executable(redis_tests
     src/config.cpp
     src/aof.cpp
     src/resp_parser.cpp
+    src/logger.cpp
 )
 
 target_include_directories(redis_tests PRIVATE

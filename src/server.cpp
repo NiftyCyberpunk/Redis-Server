@@ -9,6 +9,9 @@
 # include "server_stats.hpp"
 # include <WinSock2.h>
 # include <chrono>
+# include <fstream>
+# include <iterator>
+# include <mutex>
 # include <ole2.h>
 # include <string>
 # include <vector>
@@ -22,7 +25,6 @@ Server::Server(CommandHandler& commandHandler, PubSub& pubsub, ServerStats& stat
 Server::~Server(){
     if(serverSocket != INVALID_SOCKET){
         closesocket(serverSocket);
-        WSACleanup();
     }
 }
 
@@ -172,6 +174,10 @@ void Server::handleClient(SOCKET clientSocket){
 
                     for(const auto& command : session.queuedCommand){
                         results.push_back(handler.execute(command));
+
+                        if(isWriteCommand(command)){
+                            broadcast(cmd.raw);
+                        }
                     }
 
                     session.queuedCommand.clear();
@@ -317,6 +323,10 @@ void Server::handleClient(SOCKET clientSocket){
                 
                 CommandResult result = handler.execute(cmd);
 
+                if(isWriteCommand(cmd)){
+                    broadcast(cmd.raw);
+                }
+
                 std::string response = ProtocolFormatter::formatter(result);
                 
                 int bytesSend = send(
@@ -330,6 +340,13 @@ void Server::handleClient(SOCKET clientSocket){
                     Logger::error("Send failed" + std::to_string(WSAGetLastError()));
                     break;
                 }
+
+                if(cmd.command == "PSYNC"){
+                    sendAOF(clientSocket);
+                    std::lock_guard<std::mutex> lock(replicaMutex);
+                    replicaSockets.push_back(clientSocket);
+                }
+                
             }
         }
         else if(bytesReceived == 0){
@@ -351,14 +368,6 @@ void Server::handleClient(SOCKET clientSocket){
 }
 
 bool Server::start(){
-    WSAData wsadata;
-
-    int result = WSAStartup(MAKEWORD(2, 2), &wsadata);
-
-    if(result != 0){
-        Logger::error("WSAStartup failed" + std::to_string(WSAGetLastError()));
-        return false;
-    }
 
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     /*
@@ -435,4 +444,59 @@ bool Server::start(){
         clientThread.detach();
     }
     return true;
+}
+
+void Server::sendAOF(SOCKET clientSocket){
+    std::ifstream file(Config::appendFile);
+
+    if(!file){
+        Logger::error("Unable to open AOF file");
+        return;
+    }
+
+    std::string data(
+        (std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>()
+    );
+
+    send(
+        clientSocket,
+        data.data(),
+        static_cast<int>(data.size()),
+        0
+    );
+}
+
+void Server::broadcast(const std::string& command){
+    std::lock_guard<std::mutex> lock(replicaMutex);
+    std::vector<int> closeReplicaIndex;
+
+    for (auto it = replicaSockets.begin(); it != replicaSockets.end(); ) {
+
+        int bytesSent = send(
+            *it,
+            command.data(),
+            static_cast<int>(command.size()),
+            0
+        );
+
+        if (bytesSent == SOCKET_ERROR) {
+            it = replicaSockets.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    
+}
+
+bool Server::isWriteCommand(const Command& cmd) {
+    return cmd.command == "SET" ||
+        cmd.command == "DEL" ||
+        cmd.command == "MSET" ||
+        cmd.command == "INCR" ||
+        cmd.command == "DECR" ||
+        cmd.command == "EXPIRE" ||
+        cmd.command == "PERSIST" ||
+        cmd.command == "FLUSHDB";
 }
