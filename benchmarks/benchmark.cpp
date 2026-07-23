@@ -58,7 +58,7 @@ int main(){
     
     int k = 0;
     const int batchSize = 10;
-    const int totalCommands = 100000;
+    const int totalCommands = 1000000;
 
     auto start = std::chrono::steady_clock::now();
     for(int i = 0; i < totalCommands/batchSize; i++){

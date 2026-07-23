@@ -469,7 +469,6 @@ void Server::sendAOF(SOCKET clientSocket){
 
 void Server::broadcast(const std::string& command){
     std::lock_guard<std::mutex> lock(replicaMutex);
-    std::vector<int> closeReplicaIndex;
 
     for (auto it = replicaSockets.begin(); it != replicaSockets.end(); ) {
 

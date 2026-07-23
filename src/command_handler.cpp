@@ -4,7 +4,6 @@
 # include "config.hpp"
 # include "database.hpp"
 # include "persistence.hpp"
-# include "logger.hpp"
 # include <chrono>
 # include <cstddef>
 # include <exception>
