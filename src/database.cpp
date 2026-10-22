@@ -82,13 +82,27 @@ std::size_t Database::size() const{
 }
 
 bool Database::renameKey(const std::string& oldKey, const std::string& newKey){
-    memory[newKey] = memory[oldKey];
-    expirations[newKey] = expirations[oldKey];
-    expirations.erase(oldKey);
-    return memory.erase(oldKey);
+
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    if(memory.find(oldKey) == memory.end()) return false;
+
+    memory[newKey] = memory.at(oldKey);
+    memory.erase(oldKey);
+
+    auto it = expirations.find(oldKey);
+    if(it != expirations.end()){
+        expirations[newKey] = it->second;
+        expirations.erase(oldKey);
+    }
+    else{
+        expirations.erase(newKey);
+    }
+
+    return true;
 }
 
-const std::unordered_map<std::string, std::string>& Database::getAll() const{
+const std::unordered_map<std::string, std::string> Database::getAll() const{
 
     std::lock_guard<std::mutex> lock(dbMutex);
     
