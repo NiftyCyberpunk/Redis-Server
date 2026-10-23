@@ -3,7 +3,7 @@
 # include "command_handler.hpp"
 # include "pubsub.hpp"
 # include <WinSock2.h>
-#include <atomic>
+# include <atomic>
 # include <thread>
 # include <vector>
 # include <winSock2.h>

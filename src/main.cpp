@@ -9,11 +9,24 @@
 # include "server_stats.hpp"
 # include "logger.hpp"
 # include <WinSock2.h>
+# include <windows.h>
 # include <iostream>
 # include <string>
 # include <thread>
 
-//# include <optional>
+Server* globalServer = nullptr;
+
+BOOL WINAPI consoleHandler(DWORD signal){
+    if(signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT){
+        Logger::info("Shutting down server gracefully...");
+
+        if(globalServer){
+            globalServer->stop();
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
 
 int main(int argc, char* argv[]){
 
@@ -58,6 +71,13 @@ int main(int argc, char* argv[]){
 
     Server server(handler, pubsub, stats);
 
+    globalServer = &server;
+
+    if(!SetConsoleCtrlHandler(consoleHandler, TRUE)){
+        Logger::error("Could not set the console handler.");
+        return -1;
+    }
+
     if(Config::isReplica){
         std::thread replicaThread([&]{
             ReplicaClient replica(handler);
@@ -70,7 +90,6 @@ int main(int argc, char* argv[]){
         std::cout <<"Server failed to start\n";
         return -1;
     }
-    std::cout <<"Server started\n";
 
     WSACleanup();
     return 0;

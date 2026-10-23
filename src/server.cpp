@@ -23,7 +23,16 @@ Server::Server(CommandHandler& commandHandler, PubSub& pubsub, ServerStats& stat
 
 Server::~Server(){
     if(serverSocket != INVALID_SOCKET){
+        stop();
+    }
+}
+
+void Server::stop(){
+    isRunning = false;
+    
+    if(serverSocket != INVALID_SOCKET){
         closesocket(serverSocket);
+        serverSocket = INVALID_SOCKET;
     }
 }
 
@@ -81,7 +90,6 @@ void Server::handleClient(SOCKET clientSocket){
                     isConnected = false;
                     break;
                 }
-                //Logger::info("Command = [" + cmd.command + "]");
                 if(cmd.command == "AUTH"){
                     if(cmd.args.size() != 1){
                         std::string response = "- AUTH require one argument\r\n";
@@ -417,6 +425,7 @@ bool Server::start(){
         return false;
     }
 
+    Logger::info("Server started successfully");
     Logger::info("Server listening on port " + std::to_string(Config::port));    
     
     
@@ -425,11 +434,15 @@ bool Server::start(){
     cleanUpThread = std::thread(&Server::cleanUpExpiredKeys,this);
     cleanUpThread.detach();
 
-    while (true){
+    while (isRunning){
+
         SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
 
         if(clientSocket == INVALID_SOCKET){
-            Logger::error("Accept failed" + std::to_string(WSAGetLastError()));
+            if(!isRunning){
+                break;
+            }
+            Logger::error("Accept failed " + std::to_string(WSAGetLastError()));
             continue;
         }
         
