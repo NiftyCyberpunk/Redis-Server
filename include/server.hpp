@@ -3,6 +3,7 @@
 # include "command_handler.hpp"
 # include "pubsub.hpp"
 # include <WinSock2.h>
+#include <atomic>
 # include <thread>
 # include <vector>
 # include <winSock2.h>
@@ -22,13 +23,15 @@ private:
     };
 
     std::vector<SOCKET> replicaSockets;
+    std::atomic<bool> isRunning{true};
 public:
     Server(CommandHandler& commandHandler, PubSub& pubsub, ServerStats& stats);
     ~Server();
     
     void handleClient(SOCKET clientSocket);
     bool start();
-
+    void stop();
+    
     std::thread cleanUpThread;
     void cleanUpExpiredKeys();
     void sendAOF(SOCKET clientSocket);

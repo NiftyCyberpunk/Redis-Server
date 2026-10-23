@@ -5,11 +5,12 @@
 # include "resp_parser.hpp"
 # include <fstream>
 # include <iterator>
+# include <mutex>
 # include <oaidl.h>
 
 bool AOF::isReplaying = false;
-//After this line we can remove the AOF:: from every isReplaying but it looks good to me...
 std::ofstream AOF::file;
+std::mutex AOF::aofMutex;
 
 bool AOF::init(){
 
@@ -18,7 +19,6 @@ bool AOF::init(){
     }
 
     file.open(Config::appendFile, std::ios::app);
-    //std::ios::app ==> Don't overwrite the file append it...
     return file.is_open();
 }
 
@@ -29,19 +29,18 @@ void AOF::close(){
 }
 
 bool AOF::append(const std::string &command){
-    //Logger::info("Append called");
+
+    std::lock_guard<std::mutex> lock(aofMutex);
 
     if(!Config::appendOnly || AOF::isReplaying){
         return true;
     }
 
     if(!file.is_open()){
-        //Logger::error("Cannot open: " + Config::appendFile);
         return false;
     }
     file <<command;
     file.flush();
-    //Logger::info("Append finished");
     return true;
 }
 

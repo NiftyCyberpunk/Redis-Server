@@ -12,7 +12,6 @@
 # include <fstream>
 # include <iterator>
 # include <mutex>
-# include <ole2.h>
 # include <string>
 # include <vector>
 # include <winSock2.h>
@@ -29,7 +28,7 @@ Server::~Server(){
 }
 
 void Server::cleanUpExpiredKeys(){
-    while(true){
+    while(isRunning){
         handler.cleanUpExpiredKey();
 
         std::this_thread::sleep_for(std::chrono::seconds(Config::cleanupInterval));
@@ -480,12 +479,12 @@ void Server::broadcast(const std::string& command){
         );
 
         if (bytesSent == SOCKET_ERROR) {
+            closesocket(*it);
             it = replicaSockets.erase(it);
         } else {
             ++it;
         }
     }
-
     
 }
 
