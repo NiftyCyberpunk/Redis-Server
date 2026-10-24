@@ -59,7 +59,7 @@ bool ReplicaClient::start(){
         return false;
     }
 
-    std::string auth = "*2\r\n$4\r\nAUTH\r\n$8\r\naryan123\r\n";
+    std::string auth = "*2\r\n$4\r\nAUTH\r\n$" + std::to_string(Config::password.length()) + "\r\n" + Config::password + "\r\n";    
     Logger::replicaInfo(sendAndReceive(auth), "AUTH");
 
     std::string command = "*1\r\n$4\r\nPING\r\n";
